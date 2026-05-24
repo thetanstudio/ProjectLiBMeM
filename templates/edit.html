@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Book</title>
+</head>
+
+<body style="margin:0; font-family:sans-serif; background:#f5f5f5;">
+
+<div style="display:flex; height:100vh;">
+
+    <!-- SIDEBAR -->
+    <div style="width:220px; background:#111; color:white; padding:20px;">
+        <h2>LiBMeM</h2>
+        <hr>
+
+       <p><a href="/dashboard" style="color:white;">Dashboard</a></p>
+        <p><a href="/books" style="color:white;">Add Books</a></p>
+         <p><a href="/students" style="color:white;">Add Students</a></p>
+         <p><a href="/issue" style="color:white;">Issue Books</a></p>
+         <p><a href="/return" style="color:white;">Return Books</a></p>
+         <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
+        <div style="
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    color:gray;
+    font-size:13px;
+    line-height:1.6;
+">
+    <div>v2.143.12</div>
+    <div>By Tanush/div>
+</div>
+    </div>
+   
+
+    <!-- MAIN -->
+    <div style="flex:1; padding:40px;">
+
+        <!-- TOP BAR -->
+        <div style="display:flex; align-items:center; gap:15px;">
+            <a href="/books" style="text-decoration:none; font-size:20px;">⬅</a>
+            <h2>Edit Book</h2>
+        </div>
+
+        <!-- FORM -->
+        <div style="background:white; padding:25px; width:350px; border-radius:10px; margin-top:20px;">
+
+            <form method="POST" onsubmit="return validateEdit()">
+
+                <!-- ID (READ ONLY) -->
+                <input value="{{book.id}}" readonly style="display:block; margin:10px 0; width:100%; background:#eee;">
+
+                <input id="name" name="name" value="{{book.name}}" placeholder="Book Name" style="display:block; margin:10px 0; width:100%;">
+                <input id="author" name="author" value="{{book.author}}" placeholder="Author" style="display:block; margin:10px 0; width:100%;">
+                <input name="publisher" value="{{book.publisher}}" placeholder="Publisher" style="display:block; margin:10px 0; width:100%;">
+                <input id="isbn" name="isbn" value="{{book.isbn}}" placeholder="ISBN" style="display:block; margin:10px 0; width:100%;">
+                <input id="price" name="price" value="{{book.price}}" placeholder="Price" style="display:block; margin:10px 0; width:100%;">
+                <input name="subtitle" value="{{book.subtitle}}" placeholder="Subtitle" style="display:block; margin:10px 0; width:100%;">
+                <input name="cover" value="{{book.cover}}" placeholder="Cover URL" style="display:block; margin:10px 0; width:100%;">
+
+                <button style="margin-top:10px;">Save Changes</button>
+            </form>
+
+            <p id="error" style="color:red;"></p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function validateEdit() {
+    let name = document.getElementById("name").value.trim();
+    let author = document.getElementById("author").value.trim();
+    let isbn = document.getElementById("isbn").value.trim();
+    let price = document.getElementById("price").value.trim();
+
+    if (!name || !author || !isbn || !price) {
+        document.getElementById("error").innerText = "Please fill out required fields!";
+        return false;
+    }
+    return true;
+}
+</script>
+
+</body>
+</html>

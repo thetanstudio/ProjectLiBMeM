@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Students</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 0;
+            background: #f5f6fa;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 200px;
+            background: white;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 30px;
+        }
+
+        .sidebar a {
+            display: block;
+            margin: 10px 0;
+            text-decoration: none;
+            color: black;
+        }
+
+        .active {
+            color: blue;
+        }
+
+        /* MAIN */
+        .main {
+            flex: 1;
+            display: flex;
+        }
+
+        .left {
+            width: 40%;
+            padding: 40px;
+        }
+
+        .right {
+            width: 60%;
+            padding: 20px;
+            overflow-y: scroll;
+        }
+
+        input {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 80%;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .class-box {
+            background: white;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .icons a {
+            margin-left: 10px;
+            text-decoration: none;
+        }
+
+        .student {
+            padding-left: 10px;
+        }
+
+        .search {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    
+     <!-- SIDEBAR -->
+    <div style="width:220px; background:#111; color:white; padding:20px;">
+        <h2>LiBMeM</h2>
+        <hr>
+
+       <p><a href="/dashboard" style="color:white;">Dashboard</a></p>
+        <p><a href="/books" style="color:white;">Add Books</a></p>
+         <p><a href="/students" style="color:white;">Add Students</a></p>
+         <p><a href="/issue" style="color:white;">Issue Books</a></p>
+         <p><a href="/return" style="color:white;">Return Books</a></p>
+         <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
+         <div style="
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    color:gray;
+    font-size:13px;
+    line-height:1.6;
+">
+    <div>v2.143.12</div>
+    <div>By Tanush</div>
+</div>
+         
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- LEFT FORM -->
+        <div class="left">
+            <h2>Add Students and Classes</h2>
+
+            <form method="POST">
+                <input type="text" name="class" placeholder="Class">
+                <input type="text" name="student" placeholder="Student Name">
+                <button type="submit">Add +</button>
+                <p id="error" style="color:red;"></p>
+            </form>
+        </div>
+
+        <!-- RIGHT LIST -->
+        <div class="right">
+
+            <form method="GET">
+                <input class="search" type="text" name="search" placeholder="Search..."><button>Search</button>
+                
+            </form>
+
+            {% for c in classes %}
+            <div class="class-box">
+
+                <div class="top-bar">
+                    <strong>{{ c }}</strong>
+
+                    <div class="icons">
+                        <a href="/edit_class/{{ c }}">✏️</a>
+                        <a href="/delete_class/{{ c }}">🗑️</a>
+                    </div>
+                </div>
+
+                {% for s in students %}
+                    {% if s.class == c %}
+                        <div class="student">
+                            {{ s.name }}
+                            <a href="/edit_student/{{ loop.index0 }}">✏️</a>
+                            <a href="/delete_student/{{ loop.index0 }}">🗑️</a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+            {% endfor %}
+
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

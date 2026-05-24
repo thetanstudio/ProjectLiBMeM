@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Book</title>
+</head>
+
+<body style="font-family:sans-serif; padding:30px;">
+
+<a href="/books">⬅ Back</a>
+
+<h2>Edit Book</h2>
+
+<form method="POST">
+
+    <input name="name" value="{{book.name}}" placeholder="Book Name"><br><br>
+    <input name="author" value="{{book.author}}" placeholder="Author"><br><br>
+    <input name="publisher" value="{{book.publisher}}" placeholder="Publisher"><br><br>
+    <input name="isbn" value="{{book.isbn}}" placeholder="ISBN"><br><br>
+    <input name="price" value="{{book.price}}" placeholder="Price"><br><br>
+    <input name="subtitle" value="{{book.subtitle}}" placeholder="Subtitle"><br><br>
+    <input name="cover" value="{{book.cover}}" placeholder="Cover"><br><br>
+
+    <button>Save</button>
+
+</form>
+
+</body>
+</html>

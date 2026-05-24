@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Return Books</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            display: flex;
+        }
+
+        /* SIDEBAR (SAME AS YOUR OTHER PAGES) */
+        .sidebar {
+            width: 220px;
+            background: #111;
+            color: white;
+            padding: 20px;
+            height: 100vh;
+        }
+
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .main {
+            flex: 1;
+            padding: 30px;
+        }
+
+        input, select {
+            padding: 10px;
+            margin: 5px;
+            width: 250px;
+        }
+
+        .box {
+            background: #f4f4f4;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .student {
+            padding: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+
+    <script>
+        let issues = {{ issues | tojson }};
+
+        // RETURN BY BOOK ID
+        function showBook() {
+            let id = document.getElementById("book_id").value;
+            let box = document.getElementById("book_info");
+
+            let found = issues.find(i => i.book_id === id && i.returned === false);
+
+            if (found) {
+                box.innerHTML = `
+                    <b>${found.book_name}</b><br>
+                    Student: ${found.student}<br>
+                    Class: ${found.class}<br>
+                    Issued: ${found.issue_date}
+                `;
+            } else {
+                box.innerHTML = "No active issue found";
+            }
+        }
+
+        // LOAD BORROWERS BY CLASS (ONLY BORROWED ONES)
+        function loadBorrowers() {
+            let className = document.getElementById("class").value;
+            let container = document.getElementById("borrowers");
+
+            container.innerHTML = "";
+
+            if (!className) return;
+
+            let filtered = issues.filter(i => i.class === className && i.returned === false);
+
+            filtered.forEach(i => {
+                let div = document.createElement("div");
+                div.className = "student";
+
+                div.innerHTML = `
+                    <input type="checkbox" name="students" value="${i.student}">
+                    ${i.student} (${i.book_id})
+                `;
+
+                container.appendChild(div);
+            });
+        }
+
+        // VALIDATION
+        function validateBookReturn() {
+            let id = document.getElementById("book_id").value;
+            if (!id) {
+                document.getElementById("error1").innerText = "Please enter book ID";
+                return false;
+            }
+            return true;
+        }
+
+        function validateClassReturn() {
+            let className = document.getElementById("class").value;
+            let checked = document.querySelectorAll('input[name="students"]:checked');
+
+            if (!className || checked.length === 0) {
+                document.getElementById("error2").innerText = "Select class and students";
+                return false;
+            }
+            return true;
+        }
+    </script>
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>LiBMeM</h2>
+    <hr>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/books">Add Books</a>
+    <a href="/students">Add Students</a>
+    <a href="/issue">Issue Books</a>
+    <a href="/return">Return Books</a>
+    <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
+    <div style="
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    color:gray;
+    font-size:13px;
+    line-height:1.6;
+">
+    <div>v2.143.12</div>
+    <div>By Tanush</div>
+</div>
+   
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+    <h2>Return Books</h2>
+
+    <!-- BY BOOK ID -->
+    <div class="box">
+        <h3>Return by Book ID</h3>
+
+        <form method="POST" action="/return_book" onsubmit="return validateBookReturn()">
+            <input type="text" name="book_id" id="book_id"
+                   placeholder="Enter Book No (S0001)" onkeyup="showBook()">
+
+            <div id="book_info" style="margin-top:10px;"></div>
+
+            <button type="submit">Return</button>
+        </form>
+
+        <p id="error1" class="error"></p>
+    </div>
+
+    <!-- BY CLASS -->
+    <div class="box">
+        <h3>Return by Class</h3>
+
+        <form method="POST" action="/return_class" onsubmit="return validateClassReturn()">
+
+            <select id="class" name="class_name" onchange="loadBorrowers()">
+                <option value="">Select Class</option>
+                {% for c in classes %}
+                    <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="list" id="borrowers"></div>
+
+            <button type="submit">Return Selected</button>
+        </form>
+
+        <p id="error2" class="error"></p>
+    </div>
+
+</div>
+
+</body>
+</html>

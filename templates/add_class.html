@@ -1,0 +1,15 @@
+<h2>Add Student</h2>
+
+<form method="POST">
+<input name="class" placeholder="Class">
+<input name="student" placeholder="Student Name">
+<button type="submit">Add</button>
+</form>
+
+<hr>
+
+{% for s in data %}
+<p>{{ s.class }} - {{ s.student }}</p>
+{% endfor %}
+
+<a href="/dashboard">Back</a>

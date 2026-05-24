@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Books</title>
+</head>
+
+<body style="margin:0; font-family:sans-serif;">
+
+<div style="display:flex; height:100vh;">
+
+    <!-- SIDEBAR -->
+    <div style="width:220px; background:#111; color:white; padding:20px;">
+        <h2>LiBMeM</h2>
+        <hr>
+
+        <p><a href="/dashboard" style="color:white;">Dashboard</a></p>
+        <p><a href="/books" style="color:white;">Add Books</a></p>
+         <p><a href="/students" style="color:white;">Add Students</a></p>
+         <p><a href="/issue" style="color:white;">Issue Books</a></p>
+         <p><a href="/return" style="color:white;">Return Books</a></p>
+         <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
+         <div style="
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    color:gray;
+    font-size:13px;
+    line-height:1.6;
+">
+    <div>v2.143.12</div>
+    <div>By Tanush</div>
+</div>
+    </div>
+
+    <!-- MAIN -->
+    <div style="flex:1; padding:30px; background:#f5f5f5;">
+
+        <!-- TOP -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Add Books</h2>
+
+            <!-- SEARCH -->
+            <form action="/search">
+                <input name="q" placeholder="Search by ID (S0001)">
+                <button>Search</button>
+            </form>
+        </div>
+
+        <!-- GRID -->
+        <div style="display:flex; gap:30px; margin-top:20px;">
+
+            <!-- FORM -->
+            <div style="background:white; padding:20px; width:300px; border-radius:10px;">
+                <form method="POST" onsubmit="return validateForm()">
+
+                    <input id="name" name="name" placeholder="Book Name" style="display:block; margin:10px 0; width:100%;">
+                    <input id="author" name="author" placeholder="Author" style="display:block; margin:10px 0; width:100%;">
+                    <input name="publisher" placeholder="Publisher" style="display:block; margin:10px 0; width:100%;">
+                    <input id="isbn" name="isbn" placeholder="ISBN" style="display:block; margin:10px 0; width:100%;">
+                    <input id="price" name="price" placeholder="Price" style="display:block; margin:10px 0; width:100%;">
+                    <input name="subtitle" placeholder="Subtitle" style="display:block; margin:10px 0; width:100%;">
+                    <input name="cover" placeholder="Cover URL" style="display:block; margin:10px 0; width:100%;">
+
+                    <button>Add Book</button>
+                </form>
+
+                <p id="error" style="color:red;"></p>
+            </div>
+
+            <!-- LIST -->
+            <div style="flex:1;">
+
+                {% for book in books %}
+                <div style="background:white; padding:15px; margin-bottom:15px; border-radius:10px;">
+
+                    <b>{{book.id}} - {{book.name}}</b><br><br>
+
+                    Author: {{book.author}}<br>
+                    Publisher: {{book.publisher}}<br>
+                    ISBN: {{book.isbn}}<br>
+                    Price: {{book.price}}<br>
+                    Subtitle: {{book.subtitle}}<br>
+
+                    <br>
+
+                    <a href="/edit_book/{{book.id}}">Edit</a> 
+                    
+                </div>
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function validateForm() {
+    let name = document.getElementById("name").value.trim();
+    let author = document.getElementById("author").value.trim();
+    let isbn = document.getElementById("isbn").value.trim();
+    let price = document.getElementById("price").value.trim();
+
+    if (!name || !author || !isbn || !price) {
+        document.getElementById("error").innerText = "Please fill out this field!";
+        return false;
+    }
+    return true;
+}
+</script>
+
+</body>
+</html>

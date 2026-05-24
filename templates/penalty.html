@@ -1,0 +1,13 @@
+<h2>Penalty Box</h2>
+
+{% for p in data %}
+<div>
+Book: {{ p.book_name }}<br>
+Student: {{ p.student }}<br>
+Class: {{ p.class }}<br>
+Due: {{ p.return_date }}<br>
+</div>
+<hr>
+{% endfor %}
+
+<a href="/dashboard">Back</a>

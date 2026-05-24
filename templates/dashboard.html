@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LiBMeM Dashboard</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            display: flex;
+            background: #f5f5f5;
+        }
+
+        /* LEFT PANEL */
+        .left {
+            width: 320px;
+            background: #f1f3f6;
+            padding: 20px;
+            height: 100vh;
+            position: fixed;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .left h3 {
+            margin-top: 0;
+        }
+
+        /* PENALTY BOX ITEMS */
+        .late-box {
+            background: white;
+            border-left: 6px solid red;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .late-box:hover {
+            background: #f9f9f9;
+            transform: scale(1.01);
+        }
+
+        .late-title {
+            color: red;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .late-info {
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .late-date {
+            color: gray;
+            font-size: 13px;
+        }
+
+        /* TOP NAVBAR */
+        .top {
+            position: fixed;
+            left: 360px;
+            right: 0;
+            height: 60px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            border-bottom: 2px solid #ddd;
+            z-index: 100;
+        }
+
+        .top a {
+            text-decoration: none;
+            color: black;
+            font-weight: bold;
+        }
+
+        /* PROFILE */
+        .profile {
+            position: absolute;
+            right: 20px;
+            background: black;
+            top: 12px;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* MAIN AREA */
+        .main {
+            margin-left: 360px;
+            margin-top: 80px;
+            padding: 30px;
+            width: calc(100% - 360px);
+            box-sizing: border-box;
+        }
+
+        .box {
+            background: white;
+            padding: 40px;
+            margin-bottom: 25px;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- LEFT PANEL -->
+    <div class="left">
+
+        <h3>Penalty Box</h3>
+
+        {% if late_returns %}
+
+            {% for i in late_returns %}
+
+            <div class="late-box"
+                 onclick="window.location.href='/history?student={{ i.student }}'">
+
+                <div class="late-title">
+                    LATE RETURN
+                </div>
+
+                <div class="late-info">
+                    {{ i.student }} - {{ i.class }} - {{ i.book_id }}
+                </div>
+
+                <div class="late-date">
+                    Borrowed: {{ i.issue_date }}
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p>No late returns 🎉</p>
+
+        {% endif %}
+
+    </div>
+
+    <!-- TOP NAV -->
+    <div class="top">
+        <a href="/books">Add Books</a>
+        <a href="/students">Add Students</a>
+        <a href="/issue">Issue</a>
+        <a href="/return">Return</a>
+        <a href="/history">History</a>
+
+       <a href="/profile" style="text-decoration:none;">
+
+    <div class="profile">
+        {{ user[0].upper() }}
+    </div>
+
+</a>
+</div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <div class="box">
+           <h2>Hello, {{ user }} 👋</h2>
+<p>Welcome back to LiBMeM</p>
+        </div>
+
+        <div style="
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+">
+
+    <!-- TIMETABLE -->
+    <div class="box" style="width:100%;">
+
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        ">
+
+            <h3>Timetable</h3>
+
+            <div>
+
+                <!-- ADD BUTTON -->
+                <form action="/upload_timetable"
+                      method="POST"
+                      enctype="multipart/form-data"
+                      style="display:inline;">
+
+                    <label style="
+                        background:black;
+                        color:white;
+                        padding:8px 12px;
+                        border-radius:8px;
+                        cursor:pointer;
+                    ">
+                        Add
+                        <input type="file"
+                               name="image"
+                               accept="image/*"
+                               onchange="this.form.submit()"
+                               hidden>
+                    </label>
+
+                </form>
+
+                <!-- DELETE -->
+                <a href="/delete_timetable"
+                   style="
+                    text-decoration:none;
+                    font-size:20px;
+                    margin-left:10px;
+                   ">
+                    🗑
+                </a>
+
+            </div>
+
+        </div>
+
+        <hr>
+
+        {% if timetable_image %}
+
+    <img src="{{ url_for('static', filename=timetable_image) }}"
+         style="
+            width:100%;
+            border-radius:10px;
+        
+         ">
+
+{% else %}
+
+    <p>No timetable uploaded</p>
+
+{% endif %}
+
+    </div>
+
+
+</div>
+
+
+</body>
+</html>
