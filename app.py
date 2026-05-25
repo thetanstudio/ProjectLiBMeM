@@ -5,6 +5,8 @@ import os
 
 
 from datetime import datetime, date
+os.makedirs("static/uploads", exist_ok=True)
+from werkzeug.utils import secure_filename
 
 def has_borrowed(student_name):
     return any(i for i in issues if i["student"] == student_name and not i["returned"])
@@ -19,7 +21,8 @@ classes = []
 students = []
 issues = []
 history = []
-timetable_image = ""
+UPLOAD_FOLDER = "static/uploads"
+timetable_image = None
 
 
 # LOGIN
@@ -123,13 +126,13 @@ def upload_timetable():
 
     if file and file.filename != "":
 
-        filename = file.filename
+        filename = secure_filename(file.filename)
 
-        timetable_image = filename
-
-        upload_path = os.path.join(app.root_path, "static", filename)
+        upload_path = os.path.join("static/uploads", filename)
 
         file.save(upload_path)
+
+        timetable_image = "uploads/" + filename
 
     return redirect("/dashboard")
 
@@ -140,7 +143,9 @@ def delete_timetable():
 
     global timetable_image
 
-    timetable_image = ""
+    UPLOAD_FOLDER = "static/uploads"
+    timetable_image = None
+
 
     return redirect("/dashboard")
 
