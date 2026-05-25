@@ -117,6 +117,12 @@ def dashboard():
 import os
 
 # TIMETABLE IMAGE
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = "static/uploads"
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 @app.route("/upload_timetable", methods=["POST"])
 def upload_timetable():
 
@@ -128,7 +134,7 @@ def upload_timetable():
 
         filename = secure_filename(file.filename)
 
-        upload_path = os.path.join("static/uploads", filename)
+        upload_path = os.path.join(UPLOAD_FOLDER, filename)
 
         file.save(upload_path)
 
