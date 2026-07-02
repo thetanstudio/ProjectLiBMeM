@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Reservation</title>
+</head>
+
+<body style="font-family:Arial;padding:30px;">
+
+<a href="/reserve">
+⬅ Back
+</a>
+
+<h2>Edit Reservation Date</h2>
+
+<form method="POST">
+
+<input
+type="date"
+name="reserved_until"
+value="{{ reservation.reserved_until }}"
+required
+>
+
+<br><br>
+
+<button>
+Save
+</button>
+
+</form>
+
+</body>
+</html>
+

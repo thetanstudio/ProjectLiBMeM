@@ -104,11 +104,17 @@
         <hr>
 
        <p><a href="/dashboard" style="color:white;">Dashboard</a></p>
+       <p>
+    <a href="/excel_import" style="color:white;">
+        From Excel
+    </a>
+</p>
         <p><a href="/books" style="color:white;">Add Books</a></p>
          <p><a href="/students" style="color:white;">Add Students</a></p>
          <p><a href="/issue" style="color:white;">Issue Books</a></p>
          <p><a href="/return" style="color:white;">Return Books</a></p>
          <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
+         <p><a href="/reserve" style="color:white;">Reserve Books</a></p>
          <div style="
     position:absolute;
     bottom:20px;
@@ -117,11 +123,61 @@
     font-size:13px;
     line-height:1.6;
 ">
-    <div>v2.143.12</div>
+    <div>v2.309.18</div>
     <div>By Tanush</div>
 </div>
          
     </div>
+
+
+    {% if students_from_excel %}
+
+<div style="
+
+width:80%;
+margin:80px auto;
+
+background:white;
+
+padding:40px;
+
+border-radius:15px;
+
+box-shadow:0 0 15px rgba(0,0,0,0.15);
+
+text-align:center;
+
+">
+
+<h1 style="color:#cc0000;">
+
+EXCEL IMPORT MODE ACTIVE
+
+</h1>
+
+<hr style="margin:20px;">
+
+<p style="font-size:18px; color:#444;">
+
+This page has been locked because students and classes are managed through Excel Import.
+
+</p>
+
+<br>
+
+<p style="color:gray;">
+
+Go to <b>From Excel</b> page to manage imported data.
+
+</p>
+
+</div>
+
+{% else %}
+
+
+
+
 
     <!-- MAIN -->
     <div class="main">
@@ -131,11 +187,30 @@
             <h2>Add Students and Classes</h2>
 
             <form method="POST">
-                <input type="text" name="class" placeholder="Class">
-                <input type="text" name="student" placeholder="Student Name">
-                <button type="submit">Add +</button>
-                <p id="error" style="color:red;"></p>
-            </form>
+
+    <input
+        type="text"
+        name="class"
+        placeholder="Class (Example: 3 A)"
+        required
+    >
+
+    <input
+        type="text"
+        name="student"
+        placeholder="Student Name"
+        required
+    >
+
+    <button type="submit">Add +</button>
+
+    <p id="error" style="color:red;"></p>
+
+</form>
+
+
+
+            
         </div>
 
         <!-- RIGHT LIST -->
@@ -175,6 +250,9 @@
 
     </div>
 </div>
+
+{% endif %}
+
 
 </body>
 </html>

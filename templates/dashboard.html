@@ -11,6 +11,19 @@
             background: #f5f5f5;
         }
 
+        .right-panel{
+    width:320px;
+    background:#f1f3f6;
+    padding:20px;
+    position:fixed;
+    right:0;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+}
+
+
+
         /* LEFT PANEL */
         .left {
             width: 320px;
@@ -67,7 +80,8 @@
             background: white;
             display: flex;
             align-items: center;
-            justify-content: space-around;
+            justify-content: center;
+            gap: 40px;
             border-bottom: 2px solid #ddd;
             z-index: 100;
         }
@@ -93,7 +107,7 @@
             justify-content: center;
         }
 
-        /* MAIN AREA */
+           /* MAIN AREA */
         .main {
             margin-left: 360px;
             margin-top: 80px;
@@ -109,6 +123,7 @@
             border-radius: 20px;
             box-shadow: 0 0 10px rgba(0,0,0,0.08);
         }
+
 
         h2 {
             margin-top: 0;
@@ -157,11 +172,13 @@
 
     <!-- TOP NAV -->
     <div class="top">
+         <a href="/excel_import">From Excel</a>
         <a href="/books">Add Books</a>
         <a href="/students">Add Students</a>
         <a href="/issue">Issue</a>
         <a href="/return">Return</a>
         <a href="/history">History</a>
+        <a href="/reserve">Reserve</a>
 
        <a href="/profile" style="text-decoration:none;">
 
@@ -170,10 +187,9 @@
     </div>
 
 </a>
-</div>
     </div>
 
-    <!-- MAIN -->
+
     <div class="main">
 
         <div class="box">

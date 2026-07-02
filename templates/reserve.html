@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reserve Books</title>
+
+    <style>
+        body{
+            margin:0;
+            font-family:Arial;
+        }
+
+        .layout{
+            display:flex;
+        }
+
+        .sidebar{
+            width:220px;
+            background:#111;
+            color:white;
+            padding:20px;
+            height:100vh;
+        }
+
+        .sidebar a{
+            color:white;
+            text-decoration:none;
+            display:block;
+            margin:12px 0;
+        }
+
+        .main{
+            flex:1;
+            padding:30px;
+        }
+
+        .box{
+            background:#f4f4f4;
+            padding:20px;
+            border-radius:10px;
+            margin-bottom:20px;
+        }
+
+        input,select{
+            padding:10px;
+            margin:5px;
+            width:250px;
+        }
+
+        button{
+            padding:10px 20px;
+        }
+
+        .notification{
+            background:white;
+            padding:10px;
+            margin-bottom:10px;
+            border-left:5px solid red;
+            border-radius:8px;
+        }
+
+        .reservation-card{
+            background:white;
+            padding:12px;
+            margin-bottom:10px;
+            border-radius:8px;
+        }
+
+        .active{
+            background:gold;
+            padding:3px 8px;
+            border-radius:5px;
+        }
+
+        .expired{
+            background:red;
+            color:white;
+            padding:3px 8px;
+            border-radius:5px;
+        }
+    </style>
+
+    <script>
+
+        function loadStudents(){
+
+            let className =
+                document.getElementById("class").value;
+
+            fetch(`/get_students/${className}`)
+            .then(res => res.json())
+            .then(data => {
+
+                let select =
+                    document.getElementById("student");
+
+                select.innerHTML =
+                    '<option value="">Select Student</option>';
+
+                data.students.forEach(s => {
+
+                    select.innerHTML +=
+                        `<option value="${s.name}">
+                            ${s.name}
+                        </option>`;
+
+                });
+
+            });
+
+        }
+
+        function loadBookInfo(){
+
+    let bookId =
+        document.getElementById("book_id").value;
+
+    if(bookId == ""){
+
+        document.getElementById("bookInfo").style.display =
+            "none";
+
+        return;
+    }
+
+    fetch(`/get_book_info/${bookId}`)
+
+    .then(res => res.json())
+
+    .then(data => {
+
+        let box =
+            document.getElementById("bookInfo");
+
+        if(data.found){
+
+            box.style.display = "block";
+
+            box.innerHTML = `
+
+                <b>${data.name}</b>
+
+                <br><br>
+
+                Author: ${data.author}<br>
+                Publisher: ${data.publisher}<br>
+                Published Year: ${data.year_published}<br>
+                ISBN: ${data.isbn}<br>
+                Price: ${data.price}<br>
+                Subtitle: ${data.subtitle}
+
+            `;
+
+        }
+
+        else{
+
+            box.style.display = "block";
+
+            box.innerHTML =
+                "Book not found";
+
+        }
+
+    });
+
+}
+
+
+
+    </script>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+    <div class="sidebar">
+
+        <h2>LiBMeM</h2>
+        <hr>
+
+        <a href="/dashboard">Dashboard</a>
+        <p>
+    <a href="/excel_import" style="color:white;">
+        From Excel
+    </a>
+</p>
+        <a href="/books">Add Books</a>
+        <a href="/students">Add Students</a>
+        <a href="/issue">Issue Books</a>
+        <a href="/return">Return Books</a>
+        <a href="/history">History</a>
+         <a href="/reserve">Reserve Books</a>
+         <div style="
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    color:gray;
+    font-size:13px;
+    line-height:1.6;
+">
+    <div>v2.309.18</div>
+    <div>By-Tanush </div>
+   
+</div>
+
+    </div>
+
+    <div class="main">
+
+        <h2>Reserve Books</h2>
+
+        <div class="box">
+
+            <form method="POST">
+
+                <input
+    name="book_id"
+    id="book_id"
+    placeholder="Book ID"
+    oninput="loadBookInfo()"
+    required
+>
+
+<div id="bookInfo" style="
+margin-top:10px;
+background:white;
+padding:12px;
+border-radius:8px;
+display:none;
+width:350px;
+">
+</div>
+
+
+
+              
+
+                <br>
+
+                <select
+                    name="class_name"
+                    id="class"
+                    onchange="loadStudents()"
+                    required
+                >
+
+                    <option value="">
+                        Select Class
+                    </option>
+
+                    {% for c in classes %}
+                    <option value="{{ c }}">
+                        {{ c }}
+                    </option>
+                    {% endfor %}
+
+                </select>
+
+                <br>
+
+                <select
+                    name="student_name"
+                    id="student"
+                    required
+                >
+
+                    <option value="">
+                        Select Student
+                    </option>
+
+                </select>
+
+                <br>
+
+               <input
+    type="date"
+    name="reserved_until"
+    min="{{ today }}"
+    required
+>
+
+
+                <br>
+
+                <button type="submit">
+                    Reserve Book
+                </button>
+
+            </form>
+
+        </div>
+
+        <div class="box">
+
+            <form method="GET">
+
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Search Book ID / Student / Class"
+                    value="{{ request.args.get('search', '') }}"
+                >
+
+                <button>
+                    Search
+                </button>
+
+            </form>
+
+        </div>
+
+        <div class="box">
+
+            <h3>Reserved Books</h3>
+
+            {% for r in reservations %}
+
+            <div class="reservation-card">
+
+                <b>{{ r.book_id }}</b>
+
+                -
+
+                {{ r.student }}
+
+                ({{ r.class }})
+
+                <br><br>
+
+                Reserved On:
+                {{ r.reserved_on }}
+
+                <br>
+
+                Ends:
+                {{ r.reserved_until }}
+
+                <br><br>
+
+            <a href="/edit_reservation/{{ r.book_id }}">
+    📅 Edit Date
+</a>
+
+
+    
+
+                <br><br>
+
+                {% if r.expired %}
+
+                <span class="expired">
+                    EXPIRED
+                </span>
+
+                {% else %}
+
+                <span class="active">
+                    ACTIVE
+                </span>
+
+                {% endif %}
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
+
+

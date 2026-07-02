@@ -103,21 +103,28 @@
     <hr>
 
 <p><a href="/dashboard" style="color:white; text-decoration:none;">Dashboard</a></p>
+<p>
+    <a href="/excel_import" style="color:white;">
+        From Excel
+    </a>
+</p>
  <p><a href="/books" style="color:white; text-decoration:none;">Add Books</a></p>
 <p><a href="/students" style="color:white; text-decoration:none;">Add Students</a></p>
 <p><a href="/issue" style="color:white; text-decoration:none;">Issue Books</a></p>
 <p><a href="/return" style="color:white; text-decoration:none;">Return Books</a></p>
 <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
+<p><a href="/reserve" style="color:white;">Reserve Books</a></p>
     <div style="
     position:absolute;
-    bottom:20px;
+    bottom:40px;
     left:20px;
     color:gray;
     font-size:13px;
     line-height:1.6;
 ">
-    <div>v2.143.12</div>
+    <div>v2.309.18</div>
     <div>By Tanush</div>
+
 </div>
 
 </div>
@@ -126,31 +133,149 @@
 
     <h2>History</h2>
 
-    <!-- DELETE DROPDOWN -->
-    <div class="top-bar">
-        <form method="POST" action="/delete_history">
-            <select name="delete_option">
-                <option value="">Delete older than</option>
-                <option value="5">5 days</option>
-                <option value="10">10 days</option>
-                <option value="20">20 days</option>
-                <option value="30">1 month</option>
-            </select>
-            <button type="submit">Delete</button>
-        </form>
-    </div>
+
+
+     <!-- HISTORY DELETE -->
+      <div class="top-bar">
+
+        <div style="
+display:flex;
+gap:10px;
+margin-top:20px;
+margin-bottom:20px;
+align-items:center;
+">
+
+    <b>FROM - TO</b>
+
+    <!-- CLASS RANGE -->
+    <form method="GET" action="/history_range_class">
+
+        <select name="from_class">
+
+            <option value="">By Class</option>
+
+            {% for c in classes %}
+                <option value="{{ c }}">
+                    {{ c }}
+                </option>
+            {% endfor %}
+
+        </select>
+
+        <select name="to_class">
+
+            <option value="">To Class</option>
+
+            {% for c in classes %}
+                <option value="{{ c }}">
+                    {{ c }}
+                </option>
+            {% endfor %}
+
+        </select>
+
+        <button>
+            Search
+        </button>
+
+    </form>
+
+    <!-- DATE RANGE -->
+    <form method="GET" action="/history_range_date">
+
+        <input
+            type="date"
+            name="from_date"
+        >
+
+        <input
+            type="date"
+            name="to_date"
+        >
+
+        <button>
+            Search
+        </button>
+
+    </form>
+
+</div>
+
+
+    <!-- DELETE HISTORY -->
+
+    <form method="POST" action="/delete_history">
+
+        <select name="delete_option">
+
+            <option value="">Delete older than</option>
+            <option value="5">5 days</option>
+            <option value="10">10 days</option>
+            <option value="20">20 days</option>
+            <option value="30">1 month</option>
+            <option value="all">All History</option>
+
+        </select>
+
+        <button type="submit">
+            Delete
+        </button>
+
+    </form>
+
+
+    <!-- EXPORT EXCEL -->
+
+    <form action="/export_history">
+
+        <button type="submit">
+            Print to Excel
+        </button>
+
+    </form>
+
+</div>
+
+
+
 
     <!-- SEARCH -->
-    <form method="GET" class="search-row">
-        <input type="text" name="student" placeholder="Student Name">
-        <input type="text" name="class" placeholder="Class">
-        <input type="text" name="book" placeholder="Book No.">
-        <input type="text" name="borrow_date" placeholder="Borrowed (YYYY-MM-DD)">
-        <input type="text" name="return_date" placeholder="Expected (YYYY-MM-DD)">
-        <input type="text" name="status" placeholder="Returned/Borrowed">
+   <form method="GET" class="search-row">
 
-        <button type="submit">Search</button>
-    </form>
+<input type="text" name="student" placeholder="Student Name">
+
+<input
+    type="text"
+    name="class"
+    placeholder="Class (Example: 3 A)"
+>
+
+<input type="text" name="book" placeholder="Book No.">
+
+<input type="text" name="borrow_date" placeholder="Borrow Date">
+
+<input type="text" name="return_date" placeholder="Expected Return">
+
+<input type="text" name="actual_return" placeholder="Actual Return">
+
+<input type="text" name="expiry_date" placeholder="Expiry Date">
+
+<input type="text" name="status" placeholder="Returned/Borrowed">
+
+<input type="text" name="reservation_status" placeholder="Reserved/Expired">
+
+<input
+    type="text"
+    name="reserve_date"
+    placeholder="Reserve Date"
+>
+
+
+<button type="submit">Search</button>
+
+</form>
+
 
     <!-- TABLE -->
     <table>
@@ -159,8 +284,10 @@
             <th class="small-date">Class</th>
             <th class="small-date">Book No.</th>
             <th class="small-date">Borrow Date</th>
+            <th class="small-date">Reserve Date</th>
             <th class="small-date">Expected Return</th>
              <th class="small-date">Actual Return</th>
+             <th class="small-date">Expiry Date</th>
             <th class="small-date">Status</th>
         </tr>
 
@@ -181,6 +308,7 @@
 
                 Author: {{ b.author }}<br>
                 Publisher: {{ b.publisher }}<br>
+                Year Published: {{ b.year_published }}<br>
                 ISBN: {{ b.isbn }}<br>
                 Price: {{ b.price }}<br>
                 Subtitle: {{ b.subtitle }}
@@ -191,24 +319,96 @@
     </div>
 
 </td>
+
+
+{% if i.get("status") == "reserved" or i.get("status") == "expired" %}
+
+<td>---</td>
+
+<td>
+{{ i.reserved_on }}
+</td>
+
+<td>---</td>
+
+<td>---</td>
+
+<td>
+{{ i.end_date }}
+</td>
+
+{% else %}
+
+<td>
+{{ i.issue_date }}
+</td>
+
+<td>---</td>
+
+<td>
+{{ i.expected_return }}
+</td>
+
+<td>
+{{ i.return_date if i.return_date else "Not Returned" }}
+</td>
+
+<td>---</td>
+
+{% endif %}
+
+
            
-            <td>{{ i.issue_date }}</td>
-          <td>{{ i.expected_return }}</td>
+
+
 
 <td>
-    {{ i.return_date if i.return_date else "Not Returned" }}
+
+{% if i.get("status") == "reserved" %}
+
+<span style="
+background:gold;
+padding:4px 8px;
+border-radius:5px;
+font-weight:bold;
+">
+RESERVED
+</span>
+
+{% elif i.get("status") == "expired" %}
+
+<span style="
+background:deepskyblue;
+color:white;
+padding:4px 8px;
+border-radius:5px;
+font-weight:bold;
+">
+EXPIRED
+</span>
+
+{% elif i.returned %}
+
+<span class="status-returned">
+RETURNED
+</span>
+
+{% else %}
+
+<span class="status-borrowed">
+BORROWED
+</span>
+
+{% endif %}
+
 </td>
 
-<td>
-    {% if i.returned %}
-        <span class="status-returned">RETURNED</span>
-    {% else %}
-        <span class="status-borrowed">BORROWED</span>
-    {% endif %}
-</td>
+
         </tr>
+        
         {% endfor %}
-    </table>
+
+</table>
 
 </div>
 
