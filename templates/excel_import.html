@@ -2,218 +2,596 @@
 <html>
 
 <head>
+
     <title>Import From Excel</title>
+
 </head>
 
-<body style="margin:0; font-family:sans-serif;">
 
-<div style="display:flex; height:100vh;">
+<body style="
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f5f5f5;
+">
 
 
-      <!-- SIDEBAR -->
+<div style="
+    display:flex;
+    min-height:100vh;
+">
+
+
+    <!-- ========================= -->
+    <!-- SIDEBAR -->
+    <!-- ========================= -->
+
     <div style="
         width:220px;
         background:#111;
         color:white;
         padding:20px;
+        position:fixed;
+        left:0;
+        top:0;
+        bottom:0;
+        box-sizing:border-box;
     ">
 
         <h2>LiBMeM</h2>
+
         <hr>
 
-        <p><a href="/dashboard" style="color:white;">Dashboard</a></p>
-        <p><a href="/excel_import" style="color:white;">From Excel</a></p>
-        <p><a href="/books" style="color:white;">Add Books</a></p>
-        <p><a href="/students" style="color:white;">Add Students</a></p>
-        <p><a href="/issue" style="color:white;">Issue Books</a></p>
-        <p><a href="/return" style="color:white;">Return Books</a></p>
-        <p><a href="/history" style="color:white;">History</a></p>
-        <p><a href="/reserve" style="color:white;">Reserve Books</a></p>
+
+        <p>
+            <a href="/dashboard"
+               style="color:white; text-decoration:none;">
+                Dashboard
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/excel_import"
+               style="color:white; text-decoration:none;">
+                From Excel
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/books"
+               style="color:white; text-decoration:none;">
+                Add Books
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/students"
+               style="color:white; text-decoration:none;">
+                Add Students
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/issue"
+               style="color:white; text-decoration:none;">
+                Issue Books
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/return"
+               style="color:white; text-decoration:none;">
+                Return Books
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/history"
+               style="color:white; text-decoration:none;">
+                History
+            </a>
+        </p>
+
+
+        <p>
+            <a href="/reserve"
+               style="color:white; text-decoration:none;">
+                Reserve Books
+            </a>
+        </p>
+
+
+        <!-- VERSION -->
+
         <div style="
-    position:absolute;
-    bottom:20px;
-    left:20px;
-    color:gray;
-    font-size:13px;
-    line-height:1.6;
-">
-    <div>v2.309.18</div>
-    <div>By Tanush</div>
-</div>
-    
+            position:absolute;
+            bottom:20px;
+            left:20px;
+            color:gray;
+            font-size:13px;
+            line-height:1.6;
+        ">
+
+            <div>
+                v2.309.18
+            </div>
+
+            <div>
+                By Tanush
+            </div>
+
+        </div>
+
+
     </div>
 
 
-    <!-- MAIN -->
+
+    <!-- ========================= -->
+    <!-- MAIN CONTENT -->
+    <!-- ========================= -->
+
     <div style="
+        margin-left:220px;
         flex:1;
         padding:40px;
-        background:#f5f5f5;
+        box-sizing:border-box;
+        overflow-y:auto;
     ">
 
-        <h2>Import Data From Excel</h2>
 
-        <br><br>
+        <h2>
+            Import Data From Excel
+        </h2>
 
-        <!-- BOOKS -->
 
-        <div style="
-            background:white;
-            padding:20px;
-            border-radius:10px;
-            width:400px;
+        <p style="
+            color:#666;
             margin-bottom:30px;
         ">
+            Import your books or students and classes using Excel files.
+        </p>
 
 
-<h3>Import Books</h3>
-
-{% if books_from_excel %}
+        <!-- ========================= -->
+<!-- BOOKS SECTION -->
+<!-- ========================= -->
 
 <div style="
-background:#e8ffe8;
-padding:15px;
-border-radius:10px;
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+    margin-bottom:35px;
 ">
 
-<b>{{ books_excel_name }}</b> imported successfully
 
-<br><br>
+    <!-- BOOK UPLOAD -->
 
-<form action="/delete_books_excel">
+    <div style="
+        background:white;
+        padding:25px;
+        border-radius:12px;
+        width:400px;
+        min-height:180px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        box-sizing:border-box;
+    ">
 
-<button type="submit">
-
-Delete Import
-
-</button>
-
-</form>
-
-
-</div>
-
-{% else %}
-
-<form
-
-    method="POST"
-
-    action="/upload_books_excel"
-
-    enctype="multipart/form-data"
-
->
-
-    <input
-
-        type="file"
-
-        name="books_file"
-
-        required
-
-    >
-
-    <br><br>
-
-    <button type="submit">
-
-        Upload Books
-
-    </button>
-
-</form>
-
-{% endif %}
+        <h3 style="margin-top:0;">
+            Import Books
+        </h3>
 
 
-
-            
-
-        <!-- STUDENTS -->
+        {% if books_from_excel %}
 
         <div style="
-            background:white;
-            padding:20px;
+            background:#e8ffe8;
+            padding:15px;
             border-radius:10px;
-            width:400px;
-            
+            border:1px solid #b8e6b8;
         ">
 
+            <div style="
+                color:#267326;
+                font-weight:bold;
+            ">
+                ✓ Excel file imported
+            </div>
 
-<h3>Import Students + Classes</h3>
+            <br>
 
-{% if students_from_excel %}
+            <b>{{ books_excel_name }}</b>
+
+            <br><br>
+
+            <form
+                action="/delete_books_excel"
+                method="GET"
+            >
+
+                <button
+                    type="submit"
+                    style="
+                        padding:8px 14px;
+                        border:none;
+                        border-radius:6px;
+                        background:#d9534f;
+                        color:white;
+                        cursor:pointer;
+                    "
+                >
+                    Delete Import
+                </button>
+
+            </form>
+
+        </div>
+
+        {% else %}
+
+        <form
+            method="POST"
+            action="/upload_books_excel"
+            enctype="multipart/form-data"
+        >
+
+            <input
+                type="file"
+                name="books_file"
+                accept=".xlsx"
+                required
+                style="
+                    width:100%;
+                    box-sizing:border-box;
+                    padding:8px;
+                    border:1px solid #ccc;
+                    border-radius:6px;
+                "
+            >
+
+            <br><br>
+
+            <button
+                type="submit"
+                style="
+                    padding:9px 16px;
+                    border:none;
+                    border-radius:6px;
+                    background:#111;
+                    color:white;
+                    cursor:pointer;
+                "
+            >
+                Upload Books
+            </button>
+
+        </form>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- BOOK FORMAT / IMPORTED BOOKS -->
+
+    <div style="
+        background:white;
+        padding:25px;
+        border-radius:12px;
+        width:320px;
+        height:220px;
+        overflow-y:auto;
+        box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        box-sizing:border-box;
+    ">
+
+
+        {% if books_from_excel %}
+
+        <h3 style="margin-top:0;">
+            Books Imported
+        </h3>
+
+
+        {% for book in books %}
+
+        <div style="
+            padding:8px 5px;
+            border-bottom:1px solid #eee;
+        ">
+
+            <b>{{ book.id }}</b>
+            -
+            {{ book.name }}
+
+            <br>
+
+            <small>
+                Author: {{ book.author }}
+            </small>
+
+        </div>
+
+        {% endfor %}
+
+
+        {% else %}
+
+        <h3 style="margin-top:0;">
+            Books Excel Format
+        </h3>
+
+        <p><b>A</b> → Book ID (S0001)</p>
+        <p><b>B</b> → Book Name</p>
+        <p><b>C</b> → Author</p>
+        <p><b>D</b> → Publisher</p>
+        <p><b>E</b> → Year Published</p>
+        <p><b>F</b> → ISBN</p>
+        <p><b>G</b> → Price</p>
+        <p><b>H</b> → Subtitle</p>
+        <p><b>I</b> → Cover</p>
+
+        {% endif %}
+
+
+    </div>
+
+</div>
+
+
+
+<!-- ========================= -->
+<!-- STUDENTS SECTION -->
+<!-- ========================= -->
 
 <div style="
-background:#e8ffe8;
-padding:15px;
-border-radius:10px;
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
 ">
 
-<b>{{ students_excel_name }}</b> imported successfully
+
+    <!-- STUDENTS UPLOAD -->
+
+    <div style="
+        background:white;
+        padding:25px;
+        border-radius:12px;
+        width:400px;
+        min-height:180px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        box-sizing:border-box;
+    ">
+
+        <h3 style="margin-top:0;">
+            Import Students + Classes
+        </h3>
 
 
-<br><br>
+        {% if students_from_excel %}
 
+        <div style="
+            background:#e8ffe8;
+            padding:15px;
+            border-radius:10px;
+            border:1px solid #b8e6b8;
+        ">
 
+            <div style="
+                color:#267326;
+                font-weight:bold;
+            ">
+                ✓ Excel file imported
+            </div>
 
-<form action="/delete_students_excel">
+            <br>
 
-<button type="submit">
+            <b>{{ students_excel_name }}</b>
 
-Delete Import
+            <br><br>
 
-</button>
+            <form
+                action="/delete_students_excel"
+                method="GET"
+            >
 
-</form>
+                <button
+                    type="submit"
+                    style="
+                        padding:8px 14px;
+                        border:none;
+                        border-radius:6px;
+                        background:#d9534f;
+                        color:white;
+                        cursor:pointer;
+                    "
+                >
+                    Delete Import
+                </button>
 
+            </form>
 
+        </div>
 
-</div>
+        {% else %}
 
-{% else %}
+        <form
+            method="POST"
+            action="/upload_students_excel"
+            enctype="multipart/form-data"
+        >
 
-<form
+            <input
+                type="file"
+                name="students_file"
+                accept=".xlsx"
+                required
+                style="
+                    width:100%;
+                    box-sizing:border-box;
+                    padding:8px;
+                    border:1px solid #ccc;
+                    border-radius:6px;
+                "
+            >
 
-    method="POST"
+            <br><br>
 
-    action="/upload_students_excel"
+            <button
+                type="submit"
+                style="
+                    padding:9px 16px;
+                    border:none;
+                    border-radius:6px;
+                    background:#111;
+                    color:white;
+                    cursor:pointer;
+                "
+            >
+                Upload Students
+            </button>
 
-    enctype="multipart/form-data"
+        </form>
 
->
+        {% endif %}
 
-    <input
-
-        type="file"
-
-        name="students_file"
-
-        required
-
-    >
-
-    <br><br>
-
-    <button type="submit">
-
-        Upload Students
-
-    </button>
-
-</form>
-
-{% endif %}
-
-
-       </div>     
-       
     </div>
-           
+
+
+    <!-- STUDENTS FORMAT / IMPORTED STUDENTS -->
+
+    <div style="
+        background:white;
+        padding:25px;
+        border-radius:12px;
+        width:320px;
+        height:220px;
+        overflow-y:auto;
+        box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        box-sizing:border-box;
+    ">
+
+
+        {% if students_from_excel %}
+
+        <h3 style="margin-top:0;">
+            Students + Classes Imported
+        </h3>
+
+
+        {% for class_name in classes %}
+
+        <div style="
+            margin-bottom:15px;
+        ">
+
+            <div style="
+                font-weight:bold;
+                padding:6px;
+                background:#f0f0f0;
+                border-radius:6px;
+                margin-bottom:4px;
+            ">
+
+                {{ class_name }}
+
+            </div>
+
+
+            {% for student in students %}
+
+                {% if student.class == class_name %}
+
+                <div style="
+                    padding:5px 10px;
+                    border-bottom:1px solid #eee;
+                ">
+
+                    {{ student.name }}
+
+                </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+        {% endfor %}
+
+
+        {% else %}
+
+        <h3 style="margin-top:0;">
+            Students Excel Format
+        </h3>
+
+
+        <p>
+            <b>Each sheet</b> = Class Name
+        </p>
+
+        <p>
+            Example:
+        </p>
+
+        <p>
+            <b>3 A</b>
+        </p>
+
+        <p>
+            <b>3 B</b>
+        </p>
+
+        <hr>
+
+        <p>
+            <b>Inside each sheet:</b>
+        </p>
+
+        <p>
+            Student names only
+        </p>
+
+        <p>
+            No column headers
+        </p>
+
+        <p>
+            Only one column
+        </p>
+
+
+        {% endif %}
+
+
+    </div>
+
 </div>
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+</div>
+
 
 </body>
+
 </html>
 

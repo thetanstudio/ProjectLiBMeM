@@ -245,8 +245,17 @@ def dashboard_age():
 
     return render_template("dashboard.html")
 
-@app.route("/books", methods=["GET", "POST"])
+@app.route("/books")
 def books_page():
+
+    if books_from_excel:
+
+        return render_template(
+            "manual_blocked.html",
+            message="Manual book adding is not allowed while using From Excel."
+        )
+
+
     if books_from_excel:
 
      return render_template(
@@ -326,8 +335,15 @@ def search():
     return render_template("books.html", books=filtered)
 
 #THE STUDENTS PAGE
-@app.route("/students", methods=["GET", "POST"])
+@app.route("/students")
 def students_page():
+
+    if students_from_excel:
+
+        return render_template(
+            "manual_blocked.html",
+            message="Manual student and class adding is not allowed while using From Excel."
+        )
 
     if students_from_excel:
 
@@ -1646,82 +1662,185 @@ def export_history():
     )
 
 
+# =========================
+# EXCEL IMPORT PAGE
+# =========================
 
 @app.route("/excel_import")
 def excel_import():
 
-
     return render_template(
+        "excel_import.html",
 
-    "excel_import.html",
+        books_from_excel=books_from_excel,
+        students_from_excel=students_from_excel,
 
-    books_from_excel=books_from_excel,
-    students_from_excel=students_from_excel,
+        books_excel_name=books_excel_name,
+        students_excel_name=students_excel_name,
 
-    books_excel_name=books_excel_name,
-    students_excel_name=students_excel_name
+        books=books,
+        students=students,
+        classes=classes
+    )
 
-)
 
+
+
+
+
+
+
+# =========================
+# UPLOAD BOOKS FROM EXCEL
+# =========================
 
 @app.route("/upload_books_excel", methods=["POST"])
 def upload_books_excel():
-
+    
     global books
     global books_from_excel
     global books_excel_name
+    global book_counter
 
-    file = request.files["books_file"]
+   
+    file = request.files.get("books_file")
+
+    if not file or file.filename == "":
+        return """
+        <h2 style="color:red;">
+        Oops! Looks like you made a mistake.
+        </h2>
+
+        <p>No Excel file was selected.</p>
+
+        <a href="/excel_import">Go back</a>
+        """
 
     try:
 
-        # DELETE OLD MANUAL BOOKS
-        books.clear()
-
-        book_counter = 1
-
-        books_from_excel = True
-       
-
-        # SAVE FILE NAME
-        books_excel_name = file.filename
-
-        # OPEN EXCEL
         wb = load_workbook(file)
 
         ws = wb.active
 
-        # SKIP HEADER ROW
+        # =========================
+        # CHECK EXACT HEADERS
+        # =========================
+
+        required_headers = [
+            "Book ID",
+            "Book Name",
+            "Author",
+            "Publisher",
+            "Year Published",
+            "ISBN",
+            "Price",
+            "Subtitle",
+            "Cover"
+        ]
+
+        actual_headers = [
+            cell.value
+            for cell in ws[1]
+        ]
+
+        if actual_headers != required_headers:
+
+            return """
+            <h2 style="color:red;">
+            Oops! Looks like you made a mistake in the Excel format.
+            </h2>
+
+            <h3>Required Books Excel format:</h3>
+
+            <p>Column A → Book ID (S0001)</p>
+            <p>Column B → Book Name</p>
+            <p>Column C → Author</p>
+            <p>Column D → Publisher</p>
+            <p>Column E → Year Published</p>
+            <p>Column F → ISBN</p>
+            <p>Column G → Price</p>
+            <p>Column H → Subtitle</p>
+            <p>Column I → Cover</p>
+
+            <br>
+
+            <p>
+            The column headings must be in the exact order shown above.
+            </p>
+
+            <a href="/excel_import">Go back</a>
+            """
+
+        # =========================
+        # CHECK FOR EXTRA COLUMNS
+        # =========================
+
+        for row in ws.iter_rows(min_row=2, values_only=True):
+
+            if len(row) > 9:
+
+                return """
+                <h2 style="color:red;">
+                Oops! Looks like you made a mistake in the Excel format.
+                </h2>
+
+                <p>
+                Your file contains more than 9 columns.
+                </p>
+
+                <p>
+                The Books Excel file must contain exactly 9 columns.
+                </p>
+
+                <a href="/excel_import">Go back</a>
+                """
+
+        # =========================
+        # READ BOOKS FIRST
+        # =========================
+
+        imported_books = []
+
         for row in ws.iter_rows(
-
             min_row=2,
-
             values_only=True
-
         ):
 
+            # Skip completely empty rows
+
+            if not any(row):
+
+                continue
+
             book_id = row[0]
-
             name = row[1]
-
             author = row[2]
-
             publisher = row[3]
-
             year_published = row[4]
-
             isbn = row[5]
-
             price = row[6]
+            subtitle = row[7]
+            cover = row[8]
 
-            # SAFE OPTIONAL FIELDS
-            subtitle = row[7] if len(row) > 7 else ""
+            # Required fields
 
-            cover = row[8] if len(row) > 8 else ""
+            if not book_id or not name or not author:
 
-            books.append({
+                return """
+                <h2 style="color:red;">
+                Oops! Looks like you made a mistake in the Excel format.
+                </h2>
 
-                "id": str(book_id),
+                <p>
+                Book ID, Book Name and Author cannot be empty.
+                </p>
+
+                <a href="/excel_import">Go back</a>
+                """
+
+            imported_books.append({
+
+                "id": str(book_id).strip(),
 
                 "name": name,
 
@@ -1735,131 +1854,182 @@ def upload_books_excel():
 
                 "price": price,
 
-                "subtitle": subtitle,
+                "subtitle": subtitle if subtitle else "",
 
-                "cover": cover
+                "cover": cover if cover else ""
 
             })
 
+        # =========================
+        # REPLACE OLD BOOK DATA
+        # =========================
+
+        books.clear()
+
+        books.extend(imported_books)
+
+        book_counter = 1
+
+        books_from_excel = True
+
+        books_excel_name = file.filename
+
         return redirect("/excel_import")
 
-    except:
+    except Exception:
 
         return """
-
-        <h2 style='color:red;'>
-
-        Oops! Looks like you made a mistake.
-
+        <h2 style="color:red;">
+        Oops! Looks like you uploaded the wrong file.
         </h2>
 
-        <br>
+        <p>
+        Please make sure you selected a valid Excel (.xlsx) file
+        containing the required Books format.
+        </p>
 
-        Either:
+        <h3>Required format:</h3>
 
-        <br><br>
+        <p>Column A → Book ID (S0001)</p>
+        <p>Column B → Book Name</p>
+        <p>Column C → Author</p>
+        <p>Column D → Publisher</p>
+        <p>Column E → Year Published</p>
+        <p>Column F → ISBN</p>
+        <p>Column G → Price</p>
+        <p>Column H → Subtitle</p>
+        <p>Column I → Cover</p>
 
-        1. You uploaded the wrong file
-
-        <br>
-
-        2. The Excel format is incorrect
-
-        <br><br>
-
-        Required format:
-
-        <br>
-
-        Column A → Book ID (S0001)
-
-        <br>
-
-        Column B → Book Name
-
-        <br>
-
-        Column C → Author
-
-        <br>
-
-        Column D → Publisher
-
-        <br>
-
-        Column E → Year Published
-
-        <br>
-
-        Column F → ISBN
-
-        <br>
-
-        Column G → Price
-
-        <br>
-
-        Column H → Subtitle (optional)
-
-        <br>
-
-        Column I → Cover (optional)
-
+        <a href="/excel_import">Go back</a>
         """
-    
 
+
+# =========================
+# UPLOAD STUDENTS FROM EXCEL
+# =========================
 
 @app.route("/upload_students_excel", methods=["POST"])
 def upload_students_excel():
 
     global students
     global classes
+
     global students_from_excel
     global students_excel_name
 
-    file = request.files["students_file"]
+    file = request.files.get("students_file")
+
+    if not file or file.filename == "":
+
+        return """
+        <h2 style="color:red;">
+        Oops! Looks like you made a mistake.
+        </h2>
+
+        <p>No Excel file was selected.</p>
+
+        <a href="/excel_import">Go back</a>
+        """
 
     try:
 
-        # DELETE OLD MANUAL DATA
-        students.clear()
-
-        classes.clear()
-
-        # EXCEL MODE ON
-        students_from_excel = True
-
-        # SAVE FILE NAME
-        students_excel_name = file.filename
-
-        # OPEN EXCEL
         wb = load_workbook(file)
 
-        # LOOP THROUGH EVERY SHEET
+        imported_students = []
+
+        imported_classes = []
+
+        # =========================
+        # CHECK EVERY SHEET
+        # =========================
+
         for sheet_name in wb.sheetnames:
 
             ws = wb[sheet_name]
 
-            class_name = sheet_name
+            class_name = sheet_name.strip()
 
-            # SAVE CLASS
-            classes.append(class_name)
+            if not class_name:
 
-            # READ STUDENT NAMES
+                return """
+                <h2 style="color:red;">
+                Oops! Looks like you made a mistake in the Excel format.
+                </h2>
+
+                <p>
+                Every sheet must have a class name.
+                </p>
+
+                <a href="/excel_import">Go back</a>
+                """
+
+            imported_classes.append(class_name)
+
+            # =========================
+            # CHECK EVERY ROW
+            # =========================
+
             for row in ws.iter_rows(
-
                 values_only=True
-
             ):
+
+                # Completely empty row
+
+                if not any(row):
+
+                    continue
+
+                # MORE THAN ONE COLUMN
+
+                if len(row) != 1:
+
+                    return """
+                    <h2 style="color:red;">
+                    Oops! Looks like you made a mistake in the Excel format.
+                    </h2>
+
+                    <p>
+                    Student sheets must contain student names only.
+                    </p>
+
+                    <p>
+                    No column headers and no extra columns are allowed.
+                    </p>
+
+                    <h3>Example:</h3>
+
+                    <p>Sheet name → 3 A</p>
+
+                    <p>Ali</p>
+                    <p>Neharika</p>
+                    <p>John</p>
+
+                    <a href="/excel_import">Go back</a>
+                    """
 
                 student_name = row[0]
 
-                # SKIP EMPTY CELLS
+                if not isinstance(student_name, str):
+
+                    return """
+                    <h2 style="color:red;">
+                    Oops! Looks like you made a mistake in the Excel format.
+                    </h2>
+
+                    <p>
+                    Student names must be text.
+                    </p>
+
+                    <a href="/excel_import">Go back</a>
+                    """
+
+                student_name = student_name.strip()
+
                 if not student_name:
 
                     continue
 
-                students.append({
+                imported_students.append({
 
                     "name": student_name,
 
@@ -1867,65 +2037,73 @@ def upload_students_excel():
 
                 })
 
+        # =========================
+        # REPLACE OLD DATA
+        # =========================
+
+        students.clear()
+
+        classes.clear()
+
+        students.extend(imported_students)
+
+        classes.extend(imported_classes)
+
+        students_from_excel = True
+
+        students_excel_name = file.filename
+
         return redirect("/excel_import")
 
-    except:
+    except Exception:
 
         return """
-
-        <h2 style='color:red;'>
-
-        Oops! Looks like you made a mistake.
-
+        <h2 style="color:red;">
+        Oops! Looks like you uploaded the wrong file.
         </h2>
 
-        <br>
+        <p>
+        Please make sure you selected the Students + Classes Excel file.
+        </p>
 
-        Either:
+        <h3>Required format:</h3>
 
-        <br><br>
-
-        1. You uploaded the wrong file
-
-        <br>
-
-        2. The Excel format is incorrect
-
-        <br><br>
-
-        Required format:
-
-        <br>
-
+        <p>
         Each sheet name = Class Name
+        </p>
 
-        <br>
-
+        <p>
         Example:
+        </p>
+
+        <p>3 A</p>
+        <p>3 B</p>
 
         <br>
 
-        3 A
-
-        <br>
-
-        3 B
-
-        <br><br>
-
+        <p>
         Inside each sheet:
+        </p>
 
-        <br>
-
+        <p>
         Student names only
+        </p>
 
-        <br>
-
+        <p>
         No column headers
+        </p>
 
+        <p>
+        Only one column is allowed.
+        </p>
+
+        <a href="/excel_import">Go back</a>
         """
-    
 
+
+# =========================
+# DELETE BOOK EXCEL
+# =========================
 
 @app.route("/delete_books_excel")
 def delete_books_excel():
@@ -1935,19 +2113,20 @@ def delete_books_excel():
     global books_excel_name
     global book_counter
 
-
     books = []
 
     book_counter = 1
-
 
     books_from_excel = False
 
     books_excel_name = None
 
-
     return redirect("/excel_import")
 
+
+# =========================
+# DELETE STUDENT EXCEL
+# =========================
 
 @app.route("/delete_students_excel")
 def delete_students_excel():
@@ -1958,18 +2137,18 @@ def delete_students_excel():
     global students_from_excel
     global students_excel_name
 
-
     students = []
 
     classes = []
-
 
     students_from_excel = False
 
     students_excel_name = None
 
-
     return redirect("/excel_import")
+
+
+
 
 
 

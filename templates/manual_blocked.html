@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Manual Adding Disabled</title>
+
+</head>
+
+<body style="
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f5f5f5;
+">
+
+
+<div style="
+    display:flex;
+    min-height:100vh;
+">
+
+
+    <!-- SIDEBAR -->
+
+    <div style="
+        width:220px;
+        background:#111;
+        color:white;
+        padding:20px;
+        box-sizing:border-box;
+        position:fixed;
+        top:0;
+        bottom:0;
+        left:0;
+    ">
+
+        <h2>LiBMeM</h2>
+
+        <hr>
+
+        <p>
+            <a href="/dashboard"
+               style="color:white; text-decoration:none;">
+                Dashboard
+            </a>
+        </p>
+
+        <p>
+            <a href="/excel_import"
+               style="color:white; text-decoration:none;">
+                From Excel
+            </a>
+        </p>
+
+        <p>
+            <a href="/books"
+               style="color:white; text-decoration:none;">
+                Add Books
+            </a>
+        </p>
+
+        <p>
+            <a href="/students"
+               style="color:white; text-decoration:none;">
+                Add Students
+            </a>
+        </p>
+
+        <p>
+            <a href="/issue"
+               style="color:white; text-decoration:none;">
+                Issue Books
+            </a>
+        </p>
+
+        <p>
+            <a href="/return"
+               style="color:white; text-decoration:none;">
+                Return Books
+            </a>
+        </p>
+
+        <p>
+            <a href="/history"
+               style="color:white; text-decoration:none;">
+                History
+            </a>
+        </p>
+
+        <p>
+            <a href="/reserve"
+               style="color:white; text-decoration:none;">
+                Reserve Books
+            </a>
+        </p>
+
+    </div>
+
+
+    <!-- MAIN -->
+
+    <div style="
+        margin-left:220px;
+        flex:1;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        min-height:100vh;
+        padding:40px;
+        box-sizing:border-box;
+    ">
+
+
+        <div style="
+            background:white;
+            padding:40px;
+            border-radius:15px;
+            text-align:center;
+            max-width:600px;
+            box-shadow:0 3px 12px rgba(0,0,0,0.1);
+        ">
+
+
+            <h2 style="
+                color:#d00000;
+                margin-top:0;
+            ">
+
+                Manual Adding Is Disabled
+
+            </h2>
+
+
+            <p style="
+                font-size:17px;
+                color:#444;
+            ">
+
+                {{ message }}
+
+            </p>
+
+
+            <p style="
+                color:#666;
+            ">
+
+                Delete the current Excel import from the
+                <b>From Excel</b> page to enable manual adding again.
+
+            </p>
+
+
+            <br>
+
+
+            <a
+                href="/excel_import"
+                style="
+                    display:inline-block;
+                    padding:10px 18px;
+                    background:#111;
+                    color:white;
+                    text-decoration:none;
+                    border-radius:7px;
+                "
+            >
+
+                Go to From Excel
+
+            </a>
+
+
+        </div>
+
+    </div>
+
+
+</div>
+
+</body>
+
+</html>
+
