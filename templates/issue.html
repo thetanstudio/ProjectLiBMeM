@@ -90,6 +90,41 @@
         .sidebar p {
             margin: 15px 0;
         }
+
+        .issued-container {
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: white;
+}
+
+.issued-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.issued-table th,
+.issued-table td {
+    padding: 9px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+    font-size: 14px;
+}
+
+.issued-table th {
+    background: #f1f1f1;
+    position: sticky;
+    top: 0;
+}
+
+.return-calendar {
+    text-decoration: none;
+    font-size: 18px;
+}
+
+
     </style>
 
     <script>
@@ -171,7 +206,7 @@
     font-size:13px;
     line-height:1.6;
 ">
-    <div>v2.309.18</div>
+    <div>v2.321.18</div>
     <div>By Tanush</div>
 </div>
     </div>
@@ -256,30 +291,73 @@
 
 </div>
 
-
 <h3>Issued Books</h3>
 
-{% for i in issues %}
+<div class="issued-container">
 
-    {% if not i.returned %}
+    <table class="issued-table">
 
-        <p>
+        <thead>
 
-            {{ i.book_id }} → {{ i.student }} ({{ i.class }}) -
+            <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Book No.</th>
+                <th>Return Date</th>
+            </tr>
 
-            {% if has_borrowed(i.student) %}
+        </thead>
 
-                <span class="borrowed">📚</span>
+        <tbody>
 
-                <a href="/edit_return_date/{{ i.book_id }}">📅</a>
+        {% for i in issues %}
+
+            {% if not i.returned %}
+
+            <tr>
+
+                <td>
+                    {{ i.student }}
+                </td>
+
+                <td>
+                    {{ i.class }}
+                </td>
+
+                <td>
+                    {{ i.book_id }}
+                </td>
+
+                <td>
+
+                    {% if has_borrowed(i.student) %}
+
+                        <a
+                            href="/edit_return_date/{{ i.book_id }}"
+                            class="return-calendar"
+                            title="Change return date"
+                        >
+                            📅
+                        </a>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
 
             {% endif %}
 
-        </p>
+        {% endfor %}
 
-    {% endif %}
+        </tbody>
 
-{% endfor %}
+    </table>
+
+</div>
+
+
+
 
     </div>
 

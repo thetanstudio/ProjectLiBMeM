@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>LiBMeM - Error</title>
+
+    <style>
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            height: 100vh;
+        }
+
+        .error-box {
+
+            background: white;
+
+            width: 500px;
+
+            padding: 40px;
+
+            border-radius: 15px;
+
+            text-align: center;
+
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        }
+
+        .error-code {
+
+            font-size: 60px;
+
+            font-weight: bold;
+
+            color: #cc0000;
+
+            margin-bottom: 10px;
+        }
+
+        h2 {
+
+            margin-top: 5px;
+
+            color: #222;
+        }
+
+        p {
+
+            color: #555;
+
+            line-height: 1.6;
+        }
+
+        .report {
+
+            margin-top: 25px;
+
+            padding: 15px;
+
+            background: #fff3f3;
+
+            border-radius: 10px;
+
+            color: #444;
+        }
+
+        .home {
+
+            display: inline-block;
+
+            margin-top: 20px;
+
+            padding: 10px 20px;
+
+            background: #111;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 7px;
+        }
+
+        .home:hover {
+
+            background: #333;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="error-box">
+
+    <div class="error-code">
+        {{ error_code }}
+    </div>
+
+    <h2>
+        Oops! Looks like we ran into an error.
+    </h2>
+
+    <p>
+        Something unexpected happened while trying to open
+        this page.
+    </p>
+
+    <div class="report">
+
+        <b>Please report this to Tanush.</b>
+
+        <br><br>
+
+        If possible, tell Tanush what you were doing
+        just before this error appeared.
+
+        <br>
+
+        This will help us find and fix the problem.
+
+    </div>
+
+    <a href="/dashboard" class="home">
+        ← Back to Dashboard
+    </a>
+
+</div>
+
+</body>
+
+</html>

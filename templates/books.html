@@ -33,7 +33,7 @@
     font-size:13px;
     line-height:1.6;
 ">
-    <div>v2.309.18</div>
+    <div>v2.321.18</div>
     <div>By Tanush</div>
 </div>
     </div>
@@ -109,17 +109,67 @@ Go to <b>From Excel</b> page to manage imported books.
             <div style="background:white; padding:20px; width:300px; border-radius:10px;">
                 <form method="POST" onsubmit="return validateForm()">
 
-                    <input id="name" name="name" placeholder="Book Name" style="display:block; margin:10px 0; width:100%;">
-                    <input id="author" name="author" placeholder="Author" style="display:block; margin:10px 0; width:100%;">
-                    <input id="publisher"name="publisher"placeholder="Publisher"style="display:block; margin:10px 0; width:100%;">
-                    <input id="year"name="year_published"placeholder="Year Published"style="display:block; margin:10px 0; width:100%;"required>
-                    <input id="isbn" name="isbn" placeholder="ISBN" style="display:block; margin:10px 0; width:100%;">
-                    <input id="price" name="price" placeholder="Price" style="display:block; margin:10px 0; width:100%;">
-                    <input name="subtitle" placeholder="Subtitle" style="display:block; margin:10px 0; width:100%;">
-                    <input name="cover" placeholder="Cover URL" style="display:block; margin:10px 0; width:100%;">
+    <input
+        id="name"
+        name="name"
+        placeholder="Book Name"
+        style="display:block; margin:10px 0; width:100%;"
+    >
 
-                    <button>Add Book</button>
-                </form>
+    <input
+        id="author"
+        name="author"
+        placeholder="Author"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <input
+        id="publisher"
+        name="publisher"
+        placeholder="Publisher"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <input
+        id="year"
+        name="year_published"
+        placeholder="Year Published"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <input
+        id="isbn"
+        name="isbn"
+        placeholder="ISBN"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <input
+        id="price"
+        name="price"
+        placeholder="Price"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <!-- OPTIONAL -->
+
+    <input
+        name="subtitle"
+        placeholder="Subtitle (Optional)"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <input
+        name="cover"
+        placeholder="Cover URL (Optional)"
+        style="display:block; margin:10px 0; width:100%;"
+    >
+
+    <button type="submit">
+        Add Book
+    </button>
+
+</form>
 
                 <p id="error" style="color:red;"></p>
             </div>
@@ -162,23 +212,62 @@ Go to <b>From Excel</b> page to manage imported books.
 function validateForm() {
 
     let name = document.getElementById("name").value.trim();
+
     let author = document.getElementById("author").value.trim();
+
     let publisher = document.getElementById("publisher").value.trim();
-    let year = document.getElementById("year_published").value.trim();
+
+    let year = document.getElementById("year").value.trim();
+
     let isbn = document.getElementById("isbn").value.trim();
+
     let price = document.getElementById("price").value.trim();
 
-    if (!name || !author || !publisher || !year || !isbn || !price) {
+
+    let missing = [];
+
+
+    if (!name) {
+        missing.push("Book Name");
+    }
+
+    if (!author) {
+        missing.push("Author");
+    }
+
+    if (!publisher) {
+        missing.push("Publisher");
+    }
+
+    if (!year) {
+        missing.push("Year Published");
+    }
+
+    if (!isbn) {
+        missing.push("ISBN");
+    }
+
+    if (!price) {
+        missing.push("Price");
+    }
+
+
+    if (missing.length > 0) {
 
         document.getElementById("error").innerText =
-            "Please fill out the remaining field!";
+            "Please fill out: " + missing.join(", ");
 
         return false;
     }
 
+
+    document.getElementById("error").innerText = "";
+
     return true;
 }
+
 </script>
+
 
 </body>
 </html>

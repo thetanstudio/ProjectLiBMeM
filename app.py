@@ -245,7 +245,7 @@ def dashboard_age():
 
     return render_template("dashboard.html")
 
-@app.route("/books")
+@app.route("/books", methods=["GET", "POST"])
 def books_page():
 
     if books_from_excel:
@@ -335,7 +335,7 @@ def search():
     return render_template("books.html", books=filtered)
 
 #THE STUDENTS PAGE
-@app.route("/students")
+@app.route("/students", methods=["GET", "POST"])
 def students_page():
 
     if students_from_excel:
@@ -344,6 +344,8 @@ def students_page():
             "manual_blocked.html",
             message="Manual student and class adding is not allowed while using From Excel."
         )
+
+
 
     if students_from_excel:
 
@@ -2147,12 +2149,40 @@ def delete_students_excel():
 
     return redirect("/excel_import")
 
+@app.errorhandler(404)
+def page_not_found(error):
+
+    return render_template(
+        "error.html",
+        error_code=404
+    ), 404
 
 
+@app.errorhandler(405)
+def method_not_allowed(error):
+
+    return render_template(
+        "error.html",
+        error_code=405
+    ), 405
 
 
+@app.errorhandler(403)
+def forbidden(error):
+
+    return render_template(
+        "error.html",
+        error_code=403
+    ), 403
 
 
+@app.errorhandler(500)
+def internal_server_error(error):
+
+    return render_template(
+        "error.html",
+        error_code=500
+    ), 500
 
 
 

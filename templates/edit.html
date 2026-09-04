@@ -27,7 +27,7 @@
     font-size:13px;
     line-height:1.6;
 ">
-    <div>v2.309.18</div>
+    <div>v2.321.18</div>
     <div>By Tanush/div>
 </div>
     </div>
@@ -49,10 +49,10 @@
 
                 <!-- ID (READ ONLY) -->
                 <input value="{{book.id}}" readonly style="display:block; margin:10px 0; width:100%; background:#eee;">
-
                 <input id="name" name="name" value="{{book.name}}" placeholder="Book Name" style="display:block; margin:10px 0; width:100%;">
                 <input id="author" name="author" value="{{book.author}}" placeholder="Author" style="display:block; margin:10px 0; width:100%;">
                 <input name="publisher" value="{{book.publisher}}" placeholder="Publisher" style="display:block; margin:10px 0; width:100%;">
+                <input name="year_published" value="{{book.year_published}}" placeholder="Year Published" style="display:block; margin:10px 0; width:100%;">
                 <input id="isbn" name="isbn" value="{{book.isbn}}" placeholder="ISBN" style="display:block; margin:10px 0; width:100%;">
                 <input id="price" name="price" value="{{book.price}}" placeholder="Price" style="display:block; margin:10px 0; width:100%;">
                 <input name="subtitle" value="{{book.subtitle}}" placeholder="Subtitle" style="display:block; margin:10px 0; width:100%;">
@@ -75,8 +75,9 @@ function validateEdit() {
     let author = document.getElementById("author").value.trim();
     let isbn = document.getElementById("isbn").value.trim();
     let price = document.getElementById("price").value.trim();
+    let year_published = document.getElementById("year_published").value.trim();
 
-    if (!name || !author || !isbn || !price) {
+    if (!name || !author || !isbn || !price || !year ) {
         document.getElementById("error").innerText = "Please fill out required fields!";
         return false;
     }
