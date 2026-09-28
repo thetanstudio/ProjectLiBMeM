@@ -107,8 +107,8 @@ Go to <b>From Excel</b> page to manage imported books.
 
             <!-- FORM -->
             <div style="background:white; padding:20px; width:300px; border-radius:10px;">
-                <form method="POST" onsubmit="return validateForm()">
-
+                <form method="POST" onsubmit="return submitBookForm(this)">
+               
     <input
         id="name"
         name="name"
@@ -212,20 +212,13 @@ Go to <b>From Excel</b> page to manage imported books.
 function validateForm() {
 
     let name = document.getElementById("name").value.trim();
-
     let author = document.getElementById("author").value.trim();
-
     let publisher = document.getElementById("publisher").value.trim();
-
     let year = document.getElementById("year").value.trim();
-
     let isbn = document.getElementById("isbn").value.trim();
-
     let price = document.getElementById("price").value.trim();
 
-
     let missing = [];
-
 
     if (!name) {
         missing.push("Book Name");
@@ -251,7 +244,6 @@ function validateForm() {
         missing.push("Price");
     }
 
-
     if (missing.length > 0) {
 
         document.getElementById("error").innerText =
@@ -260,11 +252,56 @@ function validateForm() {
         return false;
     }
 
-
     document.getElementById("error").innerText = "";
 
     return true;
 }
+
+
+function submitBookForm(form) {
+
+    if (!validateForm()) {
+        return false;
+    }
+
+    const button = form.querySelector("button");
+
+    button.disabled = true;
+
+    button.innerHTML = `
+        <span style="
+            display:inline-block;
+            width:12px;
+            height:12px;
+            border:2px solid #ccc;
+            border-top:2px solid #111;
+            border-radius:50%;
+            animation:spin 0.3s linear infinite;
+            margin-right:6px;
+        "></span>
+        Adding Book...
+    `;
+
+    return true;
+}
+</script>
+
+<style>
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>
+
+
+
+
+
 
 </script>
 

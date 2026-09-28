@@ -8,29 +8,6 @@
 
 <div style="display:flex; height:100vh;">
 
-    <!-- SIDEBAR -->
-    <div style="width:220px; background:#111; color:white; padding:20px;">
-        <h2>LiBMeM</h2>
-        <hr>
-
-       <p><a href="/dashboard" style="color:white;">Dashboard</a></p>
-        <p><a href="/books" style="color:white;">Add Books</a></p>
-         <p><a href="/students" style="color:white;">Add Students</a></p>
-         <p><a href="/issue" style="color:white;">Issue Books</a></p>
-         <p><a href="/return" style="color:white;">Return Books</a></p>
-         <p><a href="/history" style="color:white; text-decoration:none;">History</a></p>
-        <div style="
-    position:absolute;
-    bottom:20px;
-    left:20px;
-    color:gray;
-    font-size:13px;
-    line-height:1.6;
-">
-    <div>v2.321.18</div>
-    <div>By Tanush/div>
-</div>
-    </div>
    
 
     <!-- MAIN -->
@@ -77,7 +54,7 @@ function validateEdit() {
     let price = document.getElementById("price").value.trim();
     let year_published = document.getElementById("year_published").value.trim();
 
-    if (!name || !author || !isbn || !price || !year ) {
+    if (!name || !author || !isbn || !price || !year_published ) {
         document.getElementById("error").innerText = "Please fill out required fields!";
         return false;
     }

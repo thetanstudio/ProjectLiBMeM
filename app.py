@@ -6,6 +6,11 @@ from flask import send_file
 from io import BytesIO
 from flask import url_for
 import os 
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+
+
 
 
 from datetime import datetime, timedelta , date
@@ -16,6 +21,173 @@ def has_borrowed(student_name):
     return any(i for i in issues if i["student"] == student_name and not i["returned"])
 app = Flask(__name__)
 app.secret_key = "libmem_secret"
+
+load_dotenv()
+
+
+# =========================
+# SUPABASE DATABASE
+# =========================
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SECRET_KEY")
+
+supabase: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
+
+# =========================
+# SUPABASE DATABASE HELPERS
+# =========================
+
+def load_books_from_db():
+    global books
+
+    result = supabase.table("books").select("*").execute()
+
+    books.clear()
+
+    for row in result.data:
+        books.append({
+            "id": row["id"],
+            "name": row["name"],
+            "author": row["author"],
+            "publisher": row.get("publisher") or "",
+            "isbn": row.get("isbn") or "",
+            "price": row.get("price") or "",
+            "subtitle": row.get("subtitle") or "",
+            "year_published": row.get("year_published") or "",
+            "cover": row.get("cover") or ""
+        })
+
+
+def save_book_to_db(book):
+    supabase.table("books").insert({
+        "id": book["id"],
+        "name": book["name"],
+        "author": book["author"],
+        "publisher": book.get("publisher", ""),
+        "isbn": book.get("isbn", ""),
+        "price": book.get("price", ""),
+        "subtitle": book.get("subtitle", ""),
+        "year_published": book.get("year_published", ""),
+        "cover": book.get("cover", ""),
+        "source": "manual"
+    }).execute()
+
+
+def delete_book_from_db(book_id):
+    supabase.table("books").delete().eq(
+        "id", book_id
+    ).execute()
+
+
+def update_book_in_db(book):
+    supabase.table("books").update({
+        "name": book["name"],
+        "author": book["author"],
+        "publisher": book.get("publisher", ""),
+        "isbn": book.get("isbn", ""),
+        "price": book.get("price", ""),
+        "subtitle": book.get("subtitle", ""),
+        "year_published": book.get("year_published", ""),
+        "cover": book.get("cover", "")
+    }).eq(
+        "id", book["id"]
+    ).execute()
+
+
+    # =========================
+# STUDENT / CLASS HELPERS
+# =========================
+
+def load_students_from_db():
+    global students, classes
+
+    student_result = supabase.table("students").select("*").execute()
+    class_result = supabase.table("classes").select("*").execute()
+
+    students.clear()
+    classes.clear()
+
+    for row in student_result.data:
+        students.append({
+            "name": row["name"],
+            "class": row["class_name"]
+        })
+
+    for row in class_result.data:
+        classes.append(row["name"])
+
+
+def save_class_to_db(class_name):
+    existing = (
+        supabase.table("classes")
+        .select("id")
+        .eq("name", class_name)
+        .execute()
+    )
+
+    if not existing.data:
+        supabase.table("classes").insert({
+            "name": class_name,
+            "source": "manual"
+        }).execute()
+
+
+def save_student_to_db(student):
+    supabase.table("students").insert({
+        "name": student["name"],
+        "class_name": student["class"],
+        "source": "manual"
+    }).execute()
+
+
+def delete_student_from_db(name, class_name):
+    supabase.table("students").delete().eq(
+        "name", name
+    ).eq(
+        "class_name", class_name
+    ).execute()
+
+
+def delete_class_from_db(class_name):
+    supabase.table("students").delete().eq(
+        "class_name", class_name
+    ).execute()
+
+    supabase.table("classes").delete().eq(
+        "name", class_name
+    ).execute()
+
+
+def update_student_in_db(old_name, class_name, new_name):
+    supabase.table("students").update({
+        "name": new_name
+    }).eq(
+        "name", old_name
+    ).eq(
+        "class_name", class_name
+    ).execute()
+
+
+def update_class_in_db(old_name, new_name):
+    supabase.table("students").update({
+        "class_name": new_name
+    }).eq(
+        "class_name", old_name
+    ).execute()
+
+    supabase.table("classes").update({
+        "name": new_name
+    }).eq(
+        "name", old_name
+    ).execute()
+
+
+
+
+
 
 
 books = []
@@ -296,6 +468,7 @@ def books_page():
     "year_published": year_published,
     "cover": cover
 })
+        save_book_to_db(books[-1])
         
 
         book_counter += 1
@@ -321,6 +494,8 @@ def edit_book(id):
         book["price"] = request.form.get("price")
         book["subtitle"] = request.form.get("subtitle")
         book["cover"] = request.form.get("cover")
+
+        update_book_in_db(book)
 
         return redirect("/books")
 
@@ -404,18 +579,20 @@ def students_page():
 
             classes.append(class_name)
 
-
-        # SAVE STUDENT
+                    # SAVE STUDENT
         students.append({
-
             "name": student_name,
             "class": class_name
-
         })
 
+        # SAVE TO SUPABASE
+        save_class_to_db(class_name)
+        save_student_to_db(students[-1])
+
         return redirect("/students")
+    
 
-
+        
     search = request.args.get("search", "").lower()
 
 
@@ -450,18 +627,42 @@ def students_page():
 @app.route("/delete_student/<int:index>")
 def delete_student(index):
     if 0 <= index < len(students):
+
+        student = students[index]
+
+        delete_student_from_db(
+            student["name"],
+            student["class"]
+        )
+
         students.pop(index)
+
     return redirect("/students")
+
+
+
 
 #DELETE CLASS
 @app.route("/delete_class/<class_name>")
 def delete_class(class_name):
+
+    delete_class_from_db(class_name)
+
     global students, classes
 
-    classes = [c for c in classes if c != class_name]
-    students = [s for s in students if s["class"] != class_name]
+    classes = [
+        c for c in classes
+        if c != class_name
+    ]
+
+    students = [
+        s for s in students
+        if s["class"] != class_name
+    ]
 
     return redirect("/students")
+
+
 
 #EDIT STUDENT
 @app.route("/edit_student/<int:index>", methods=["GET", "POST"])
@@ -2183,6 +2384,92 @@ def internal_server_error(error):
         "error.html",
         error_code=500
     ), 500
+
+
+# LOAD DATABASE DATA
+try:
+    load_books_from_db()
+except Exception as e:
+    print("Could not load books from Supabase:", e)
+
+    # =========================
+# STUDENT / CLASS HELPERS
+# =========================
+
+def load_students_from_db():
+    global students, classes
+
+    student_result = supabase.table("students").select("*").execute()
+    class_result = supabase.table("classes").select("*").execute()
+
+    students.clear()
+    classes.clear()
+
+    for row in student_result.data:
+        students.append({
+            "name": row["name"],
+            "class": row["class_name"]
+        })
+
+    for row in class_result.data:
+        classes.append(row["name"])
+
+
+def save_class_to_db(class_name):
+    existing = (
+        supabase.table("classes")
+        .select("id")
+        .eq("name", class_name)
+        .execute()
+    )
+
+    if not existing.data:
+        supabase.table("classes").insert({
+            "name": class_name,
+            "source": "manual"
+        }).execute()
+
+
+def save_student_to_db(student):
+    supabase.table("students").insert({
+        "name": student["name"],
+        "class_name": student["class"],
+        "source": "manual"
+    }).execute()
+
+
+def delete_student_from_db(name, class_name):
+    supabase.table("students").delete().eq(
+        "name", name
+    ).eq(
+        "class_name", class_name
+    ).execute()
+
+
+def delete_class_from_db(class_name):
+    supabase.table("students").delete().eq(
+        "class_name", class_name
+    ).execute()
+
+    supabase.table("classes").delete().eq(
+        "name", class_name
+    ).execute()
+
+
+def update_student_in_db(old_name, class_name, new_name):
+    supabase.table("students").update({
+        "name": new_name
+    }).eq(
+        "name", old_name
+    ).eq(
+        "class_name", class_name
+    ).execute()
+
+
+try:
+    load_students_from_db()
+except Exception as e:
+    print("Could not load students from Supabase:", e)
 
 
 
