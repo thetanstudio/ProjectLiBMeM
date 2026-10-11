@@ -171,6 +171,72 @@
 
 </head>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = Array.from(document.forms).find(
+        f => f.querySelector('[name="reserved_until"]')
+    );
+
+    if (!form) return;
+
+    let submitting = false;
+
+    form.addEventListener("submit", function (event) {
+        if (submitting) {
+            event.preventDefault();
+            return;
+        }
+
+        event.preventDefault();
+        submitting = true;
+
+        const button = form.querySelector(
+            'button[type="submit"], input[type="submit"]'
+        );
+
+        if (button) {
+            button.disabled = true;
+        }
+
+        setTimeout(function () {
+            form.submit();
+        }, 200);
+    });
+});
+</script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Today's date in the user's local timezone
+    const now = new Date();
+    const today = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+    ].join("-");
+
+    // Issue and edit expected return dates
+    document.querySelectorAll(
+        'input[type="date"][name="return_date"]'
+    ).forEach(function (input) {
+        input.min = today;
+    });
+
+    // Reserve and edit reservation expiry dates
+    document.querySelectorAll(
+        'input[type="date"][name="reserved_until"]'
+    ).forEach(function (input) {
+        input.min = today;
+    });
+});
+</script>
+
+
+
+
+
 <body>
 
 <div class="layout">
@@ -339,9 +405,13 @@ width:350px;
 
                 <br><br>
 
-            <a href="/edit_reservation/{{ r.book_id }}">
+                {% if not r.expired %}
+<a href="/edit_reservation/{{ r.book_id }}">
     📅 Edit Date
 </a>
+{% endif %}
+
+
 
 
     

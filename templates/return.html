@@ -37,6 +37,56 @@
             width: 250px;
         }
 
+        .book-hover {
+    position: relative;
+    display: inline-block;
+    color: #2563eb;
+    font-weight: 600;
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+
+
+.book-tooltip {
+    display: none;
+    position: fixed;
+    width: 270px;
+    max-width: 75vw;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 14px;
+    background: #ffffff;
+    color: #222222;
+    border: 1px solid #dddddd;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+    z-index: 99999;
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 1.7;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.book-hover:hover .book-tooltip,
+.book-hover:focus-within .book-tooltip {
+    display: block;
+}
+
+.tooltip-cover {
+    display: block;
+    max-width: 100px;
+    max-height: 130px;
+    object-fit: contain;
+    margin: 0 auto 10px;
+    border-radius: 4px;
+}
+
+
+
+
+
         .box {
             background: #f4f4f4;
             padding: 20px;
@@ -55,7 +105,7 @@
         }
 
         .list {
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             border: 1px solid #ccc;
             padding: 10px;
@@ -68,6 +118,7 @@
 
     <script>
         let issues = {{ issues | tojson }};
+        let books = {{ books | tojson }};
 
         // RETURN BY BOOK ID
         function showBook() {
@@ -89,28 +140,144 @@
         }
 
         // LOAD BORROWERS BY CLASS (ONLY BORROWED ONES)
-        function loadBorrowers() {
-            let className = document.getElementById("class").value;
-            let container = document.getElementById("borrowers");
+        
+function loadBorrowers() {
+    let className = document.getElementById("class").value;
+    let container = document.getElementById("borrowers");
+    let search = document.getElementById("borrower_search");
 
-            container.innerHTML = "";
+    container.innerHTML = "";
+    search.value = "";
 
-            if (!className) return;
+    if (!className) return;
 
-            let filtered = issues.filter(i => i.class === className && i.returned === false);
+    let filtered = issues.filter(
+        i => i.class === className && i.returned === false
+            && i.status !== "reserved"
+            && i.status !== "expired"
+    );
 
-            filtered.forEach(i => {
-                let div = document.createElement("div");
-                div.className = "student";
+    filtered.forEach(i => {
+        let div = document.createElement("div");
+        div.className = "student";
 
-                div.innerHTML = `
-                    <input type="checkbox" name="students" value="${i.student}">
-                    ${i.student} (${i.book_id})
-                `;
+        let checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = "students";
+        checkbox.value = i.student;
 
-                container.appendChild(div);
-            });
+
+        let label = document.createElement("span");
+label.append(document.createTextNode(` ${i.student} (`));
+
+let bookId = document.createElement("span");
+bookId.className = "book-hover";
+bookId.textContent = i.book_id;
+
+let tooltip = document.createElement("span");
+tooltip.className = "book-tooltip";
+
+let book = books.find(b => b.id === i.book_id);
+
+if (book) {
+    if (book.cover) {
+        let cover = document.createElement("img");
+        cover.src = book.cover;
+        cover.alt = book.name || "Book cover";
+        cover.className = "tooltip-cover";
+        tooltip.appendChild(cover);
+    }
+
+    let details = [
+        ["Book Name", book.name],
+        ["Author", book.author],
+        ["Publisher", book.publisher],
+        ["Year Published", book.year_published],
+        ["ISBN", book.isbn],
+        ["Price", book.price],
+        ["Subtitle", book.subtitle]
+    ];
+
+    details.forEach(([title, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            let line = document.createElement("div");
+            line.textContent = `${title}: ${value}`;
+            tooltip.appendChild(line);
         }
+    });
+} else {
+    tooltip.textContent = "Book details unavailable";
+}
+
+bookId.appendChild(tooltip);
+label.appendChild(bookId);
+label.append(document.createTextNode(")"));
+
+
+
+
+        div.dataset.search =
+            `${i.student} ${i.book_id}`.toLowerCase();
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+
+    filterBorrowers();
+}
+
+function filterBorrowers() {
+    let query = document.getElementById("borrower_search")
+        .value.trim().toLowerCase();
+
+    document.querySelectorAll("#borrowers .student").forEach(row => {
+        row.style.display =
+            row.dataset.search.includes(query) ? "" : "none";
+    });
+}
+
+
+document.addEventListener("mouseover", function (event) {
+    const bookId = event.target.closest(".book-hover");
+    if (!bookId) return;
+
+    const popup = bookId.querySelector(".book-tooltip");
+    if (!popup) return;
+
+    popup.style.display = "block";
+
+    const rect = bookId.getBoundingClientRect();
+    const popupWidth = popup.offsetWidth;
+    const popupHeight = popup.offsetHeight;
+
+    let left = rect.right + 10;
+    let top = rect.top;
+
+    // If there isn't room on the right, show it on the left.
+    if (left + popupWidth > window.innerWidth - 10) {
+        left = rect.left - popupWidth - 10;
+    }
+
+    // Keep the popup inside the visible screen.
+    left = Math.max(10, Math.min(left, window.innerWidth - popupWidth - 10));
+    top = Math.max(10, Math.min(top, window.innerHeight - popupHeight - 10));
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+});
+
+document.addEventListener("mouseout", function (event) {
+    const bookId = event.target.closest(".book-hover");
+    if (!bookId || bookId.contains(event.relatedTarget)) return;
+
+    const popup = bookId.querySelector(".book-tooltip");
+    if (popup) popup.style.display = "";
+});
+
+
+
+
 
         // VALIDATION
         function validateBookReturn() {
@@ -202,7 +369,20 @@
                 {% endfor %}
             </select>
 
-            <div class="list" id="borrowers"></div>
+            
+<input
+    type="search"
+    id="borrower_search"
+    placeholder="Search students or book IDs"
+    oninput="filterBorrowers()"
+    autocomplete="off"
+>
+
+<div class="list" id="borrowers"></div>
+
+
+
+           
 
             <button type="submit">Return Selected</button>
         </form>

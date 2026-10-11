@@ -41,13 +41,25 @@ supabase: Client = create_client(
 # =========================
 
 def load_books_from_db():
-    global books
+    global books, books_from_excel, books_excel_name
 
     result = supabase.table("books").select("*").execute()
+    rows = result.data or []
 
     books.clear()
 
-    for row in result.data:
+    # Restore Excel mode from Supabase after page changes/restarts
+    books_from_excel = (
+        bool(rows)
+        and all(row.get("source") == "excel" for row in rows)
+    )
+
+    books_excel_name = (
+        "Excel data saved in Supabase"
+        if books_from_excel else None
+    )
+
+    for row in rows:
         books.append({
             "id": row["id"],
             "name": row["name"],
@@ -59,6 +71,7 @@ def load_books_from_db():
             "year_published": row.get("year_published") or "",
             "cover": row.get("cover") or ""
         })
+
 
 
 def save_book_to_db(book):
@@ -95,6 +108,33 @@ def update_book_in_db(book):
     }).eq(
         "id", book["id"]
     ).execute()
+
+
+def get_next_book_id():
+
+    result = (
+        supabase
+        .table("books")
+        .select("id")
+        .execute()
+    )
+
+    max_number = 0
+
+    for row in result.data:
+
+        book_id = str(row.get("id", ""))
+
+        if book_id.startswith("S") and book_id[1:].isdigit():
+
+            number = int(book_id[1:])
+
+            if number > max_number:
+                max_number = number
+
+    return f"S{max_number + 1:04d}"
+
+
 
 
     # =========================
@@ -185,11 +225,163 @@ def update_class_in_db(old_name, new_name):
     ).execute()
 
 
+def delete_history_from_db(option):
+
+    from datetime import datetime, timedelta
+
+    # ==========================================
+    # DELETE ALL COMPLETED HISTORY
+    # ==========================================
+
+    if option == "all":
+
+        # Delete returned loans ONLY
+        supabase.table("loans") \
+            .delete() \
+            .eq("returned", True) \
+            .execute()
+
+        # Delete expired reservations ONLY
+        supabase.table("reservations") \
+            .delete() \
+            .eq("expired", True) \
+            .execute()
+
+        return
+
+
+    # ==========================================
+    # DELETE HISTORY OLDER THAN X DAYS
+    # ==========================================
+
+    days_map = {
+        "5": 5,
+        "10": 10,
+        "20": 20,
+        "30": 30
+    }
+
+    days = days_map.get(option)
+
+    if not days:
+        return
+
+
+    cutoff = (
+        datetime.now() -
+        timedelta(days=days)
+    ).strftime("%Y-%m-%d")
+
+
+    # ==========================================
+    # RETURNED LOANS
+    # ==========================================
+
+    loans_result = (
+        supabase
+        .table("loans")
+        .select("*")
+        .eq("returned", True)
+        .execute()
+    )
+
+    for loan in loans_result.data:
+
+        return_date = loan.get("return_date")
+
+        if return_date and return_date <= cutoff:
+
+            supabase.table("loans") \
+                .delete() \
+                .eq("id", loan["id"]) \
+                .execute()
+
+
+    # ==========================================
+    # EXPIRED RESERVATIONS
+    # ==========================================
+
+    reservations_result = (
+        supabase
+        .table("reservations")
+        .select("*")
+        .eq("expired", True)
+        .execute()
+    )
+
+    for reservation in reservations_result.data:
+
+        expiry_date = reservation.get("reserved_until")
+
+        if expiry_date and expiry_date <= cutoff:
+
+            supabase.table("reservations") \
+                .delete() \
+                .eq("id", reservation["id"]) \
+                .execute()
+
+
+def load_history_from_db():
+    global issues, reservations
+
+    issues.clear()
+    reservations.clear()
+
+    # LOAD BORROWED / RETURNED BOOKS
+    loans_result = supabase.table("loans").select("*").execute()
+
+    for row in loans_result.data:
+        issues.append({
+            "id": row.get("id"),
+            "book_id": str(row.get("book_id") or ""),
+            "book_name": row.get("book_name") or "",
+            "student": row.get("student_name") or "",
+            "class": row.get("class_name") or "",
+            "issue_date": str(row.get("issue_date") or ""),
+            "expected_return": str(row.get("expected_return") or ""),
+            "return_date": str(row.get("return_date") or ""),
+            "returned": row.get("returned", False),
+            "status": "returned" if row.get("returned", False) else "borrowed"
+        })
+
+    # LOAD RESERVATIONS FROM SUPABASE
+    result = supabase.table("reservations").select("*").execute()
+
+    for row in result.data:
+        reservation = {
+            "id": row.get("id"),
+            "book_id": str(row.get("book_id") or ""),
+            "book_name": row.get("book_name") or "",
+            "student": row.get("student_name") or "",
+            "class": row.get("class_name") or "",
+            "reserved_on": str(row.get("reserved_on") or ""),
+            "reserved_until": str(row.get("reserved_until") or ""),
+            "expired": row.get("expired", False)
+        }
+
+        reservations.append(reservation)
+
+        # Same reservation displayed in History; no duplicate DB row
+        issues.append({
+            "reservation_id": reservation["id"],
+            "book_id": reservation["book_id"],
+            "book_name": reservation["book_name"],
+            "student": reservation["student"],
+            "class": reservation["class"],
+            "issue_date": "---",
+            "expected_return": "---",
+            "return_date": "---",
+            "reserved_on": reservation["reserved_on"],
+            "end_date": reservation["reserved_until"],
+            "returned": False,
+            "status": "expired" if reservation["expired"] else "reserved"
+        })
 
 
 
 
 
+ 
 books = []
 book_counter = 1
 
@@ -208,51 +400,46 @@ students_from_excel = False
 books_excel_name = None
 students_excel_name = None
 
-
-
-
 def check_expired_reservations():
-
     today = date.today()
 
-    for r in reservations:
+    try:
+        result = (
+            supabase.table("reservations")
+            .select("*")
+            .eq("expired", False)
+            .execute()
+        )
 
-        if not r.get("expired", False):
+        for row in result.data:
+            expiry = row.get("reserved_until")
+
+            if not expiry:
+                continue
 
             try:
-
-                end_date = datetime.strptime(
-                    r["reserved_until"],
-                    "%Y-%m-%d"
+                expiry_date = datetime.strptime(
+                    str(expiry)[:10], "%Y-%m-%d"
                 ).date()
+            except ValueError:
+                continue
 
-                if end_date < today:
+            if expiry_date < today:
+                supabase.table("reservations").update({
+                    "expired": True
+                }).eq(
+                    "id", row["id"]
+                ).eq(
+                    "expired", False
+                ).execute()
 
-                    # mark reservation expired
-                    r["expired"] = True
+        load_history_from_db()
+
+    except Exception as e:
+        print("Could not update expired reservations:", e)
 
 
-                    # FIND OLD HISTORY RESERVED ROW
-                    for i in issues:
 
-                        if (
-
-                            i["book_id"] == r["book_id"]
-
-                            and i.get("status") == "reserved"
-
-                        ):
-
-                            # CHANGE RESERVED → EXPIRED
-                            i["status"] = "expired"
-
-                            # KEEP ORIGINAL END DATE
-                            i["end_date"] = r["reserved_until"]
-
-                            break
-
-            except:
-                pass
 
 
 
@@ -304,6 +491,129 @@ def profile():
         "profile.html",
         user=session["user"]
     )
+
+    
+# =========================
+# FORCE DELETE LIBMEM
+# =========================
+
+@app.route("/force_delete_libmem", methods=["POST"])
+def force_delete_libmem():
+
+    global books, students, classes
+    global issues, history, reservations
+    global current_history_view, book_counter
+    global timetable_image
+
+    if "user" not in session:
+        return redirect("/login")
+
+    # BOTH CONFIRMATIONS ARE REQUIRED
+    confirmation = request.form.get("confirm_text", "")
+    checkbox = request.form.get("confirm_checkbox")
+
+    if confirmation != "DELETE" or checkbox != "yes":
+        return """
+        <h2>Deletion cancelled</h2>
+        <p>The confirmation was incomplete or incorrect.</p>
+        <a href="/profile">Return to Profile</a>
+        """, 400
+
+    try:
+        # DELETE TRANSACTIONS FIRST
+        # This helps avoid foreign-key conflicts.
+        tables_to_clear = [
+            "loans",
+            "reservations",
+            "students",
+            "classes",
+            "books"
+        ]
+
+        for table_name in tables_to_clear:
+            (
+                supabase.table(table_name)
+                .delete()
+                .not_.is_("id", "null")
+                .execute()
+            )
+
+        # CLEAR THE IN-MEMORY DATA TOO
+        books.clear()
+        students.clear()
+        classes.clear()
+        issues.clear()
+
+# Do NOT use history.clear().
+# "history" is also the name of your History route.
+
+        reservations.clear()
+        current_history_view.clear()
+
+
+
+        book_counter = 1
+        timetable_image = None
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>LiBMeM Reset Complete</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {
+                    background: #f8fafc;
+                    font-family: Arial, sans-serif;
+                    display: grid;
+                    place-items: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    color: #172033;
+                }
+                .card {
+                    background: white;
+                    padding: 36px;
+                    border-radius: 20px;
+                    text-align: center;
+                    max-width: 420px;
+                    margin: 20px;
+                    box-shadow: 0 10px 35px #00000012;
+                }
+                h2 { color: #15803d; }
+                a {
+                    display: inline-block;
+                    margin-top: 16px;
+                    padding: 12px 22px;
+                    background: #172033;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>LiBMeM has been reset</h2>
+                <p>Application records have been cleared.</p>
+                <p>You can now begin setting up your library again.</p>
+                <a href="/dashboard">Return to Dashboard</a>
+            </div>
+        </body>
+        </html>
+        """
+
+    except Exception as e:
+        print("FORCE DELETE ERROR:", repr(e))
+
+        return """
+        <h2>Reset was not performed </h2>
+        <p>Please inform Tanush about this.</p>
+        <p>Some tables may have not been cleared.</p>
+        <a href="/profile">Return to Profile</a>
+        """, 500
+
+    
 
 # DASHBOARD
 @app.route("/")
@@ -363,6 +673,7 @@ def dashboard():
     )
 
 
+   
 import os
 
 # TIMETABLE IMAGE
@@ -409,39 +720,21 @@ def delete_timetable():
 
 
 # ADD BOOKS PAGE
-@app.route("/dashboard")
-def dashboard_age():
-    if "user" not in session:
-        return redirect("/login")
-
-
-    return render_template("dashboard.html")
-
 @app.route("/books", methods=["GET", "POST"])
 def books_page():
 
-    if books_from_excel:
+    load_books_from_db()
 
+    if books_from_excel:
         return render_template(
             "manual_blocked.html",
             message="Manual book adding is not allowed while using From Excel."
         )
 
-
-    if books_from_excel:
-
-     return render_template(
-
-        "books.html",
-
-        books_from_excel=True
-
-    )
-
-
     global book_counter
 
     if request.method == "POST":
+
         name = request.form.get("name")
         author = request.form.get("author")
         publisher = request.form.get("publisher")
@@ -450,32 +743,73 @@ def books_page():
         subtitle = request.form.get("subtitle")
         year_published = request.form.get("year_published")
         cover = request.form.get("cover")
+
+
+        # ==========================================
         # VALIDATION
-        if not name or not author or not isbn or not price or not year_published:
-          return redirect("/books")
+        # ==========================================
 
-        book_id = f"S{book_counter:04d}"
+        if (
+            not name
+            or not author
+            or not isbn
+            or not price
+            or not year_published
+        ):
+            return redirect("/books")
 
 
-        books.append({
-    "id": book_id,
-    "name": name,
-    "author": author,
-    "publisher": publisher,
-    "isbn": isbn,
-    "price": price,
-    "subtitle": subtitle,
-    "year_published": year_published,
-    "cover": cover
-})
-        save_book_to_db(books[-1])
-        
+        # ==========================================
+        # GET NEXT ID FROM SUPABASE
+        # ==========================================
 
+        book_id = get_next_book_id()
+
+
+        # ==========================================
+        # CREATE BOOK OBJECT
+        # ==========================================
+
+        new_book = {
+            "id": book_id,
+            "name": name,
+            "author": author,
+            "publisher": publisher,
+            "isbn": isbn,
+            "price": price,
+            "subtitle": subtitle,
+            "year_published": year_published,
+            "cover": cover
+        }
+
+
+        # ==========================================
+        # SAVE TO SUPABASE FIRST
+        # ==========================================
+
+        save_book_to_db(new_book)
+
+
+        # ==========================================
+        # ONLY ADD LOCALLY AFTER DATABASE SUCCESS
+        # ==========================================
+
+        books.append(new_book)
+
+
+        # Keep counter roughly synchronized
         book_counter += 1
+
 
         return redirect("/books")
 
-    return render_template("books.html", books=books)
+
+    return render_template(
+        "books.html",
+        books=books
+    )
+
+
 
 
 
@@ -509,22 +843,40 @@ def search():
     filtered = [b for b in books if b["id"].lower().startswith(query)]
     return render_template("books.html", books=filtered)
 
+
+# SEARCH BOOKS BY NAME
+@app.route("/search_name")
+def search_name():
+    query = request.args.get("q", "").strip().lower()
+
+    filtered = [
+        b for b in books
+        if query in b.get("name", "").lower()
+    ]
+
+    return render_template("books.html", books=filtered)
+
+
+
 #THE STUDENTS PAGE
 @app.route("/students", methods=["GET", "POST"])
 def students_page():
 
-    if students_from_excel:
+    load_students_from_db()
 
+    if students_from_excel:
         return render_template(
             "manual_blocked.html",
             message="Manual student and class adding is not allowed while using From Excel."
         )
 
+    if request.method == "POST":
 
+     if request.method == "POST":
 
-    if students_from_excel:
+      if students_from_excel:
 
-     return render_template(
+        return render_template(
 
         "students.html",
 
@@ -664,81 +1016,92 @@ def delete_class(class_name):
 
 
 
-#EDIT STUDENT
+# EDIT STUDENT
 @app.route("/edit_student/<int:index>", methods=["GET", "POST"])
 def edit_student(index):
+
+    if index < 0 or index >= len(students):
+        return redirect("/students")
+
     student = students[index]
 
     if request.method == "POST":
-        student["name"] = request.form.get("name")
-        return redirect("/students")
 
-    return render_template("edit_student.html", student=student, index=index)
+        old_name = student["name"]
+        old_class = student["class"]
+        new_name = (request.form.get("name") or "").strip()
 
-#EDIT CLASS
+        if not new_name:
+            return "Please enter a student name."
+
+        try:
+            # UPDATE SUPABASE FIRST
+            update_student_in_db(
+                old_name,
+                old_class,
+                new_name
+            )
+
+            # RELOAD THE LATEST DATABASE DATA
+            load_students_from_db()
+
+            return redirect("/students")
+
+        except Exception as e:
+            print("Student update failed:", e)
+            return "Could not update student in Supabase. Check the Render logs."
+
+    return render_template(
+        "edit_student.html",
+        student=student,
+        index=index
+    )
+
+
+# EDIT CLASS
 @app.route("/edit_class/<old_name>", methods=["GET", "POST"])
 def edit_class(old_name):
 
     if request.method == "POST":
 
-        new_name = request.form.get("name").strip()
+        new_name = (request.form.get("name") or "").strip()
 
-
-        # EMPTY CHECK
         if not new_name:
+            return "Please enter class."
 
-            return "Please enter class"
-
-
-        # FORMAT CHECK
         parts = new_name.split(" ")
 
-
         if len(parts) != 2:
-
-            return "Use format like 3 A (one space only)"
-
+            return "Use format like 3 A (one space only)."
 
         if not parts[0].isdigit():
+            return "Class must start with a number."
 
-            return "Class must start with a number"
+        if not parts[1].isalpha() or len(parts[1]) != 1:
+            return "Section must be one letter only."
 
+        if new_name == old_name:
+            return redirect("/students")
 
-        if not parts[1].isalpha():
+        if new_name in classes:
+            return "That class already exists."
 
-            return "Section must be a letter"
+        try:
+            # UPDATE STUDENTS AND CLASS IN SUPABASE
+            update_class_in_db(old_name, new_name)
 
+            # RELOAD DATABASE DATA
+            load_students_from_db()
 
-        if len(parts[1]) != 1:
+            return redirect("/students")
 
-            return "Section must be one letter only"
-
-
-        # UPDATE CLASSES
-        for i, c in enumerate(classes):
-
-            if c == old_name:
-
-                classes[i] = new_name
-
-
-        # UPDATE STUDENTS
-        for s in students:
-
-            if s["class"] == old_name:
-
-                s["class"] = new_name
-
-
-        return redirect("/students")
-
+        except Exception as e:
+            print("Class update failed:", e)
+            return "Could not update class."
 
     return render_template(
-
         "edit_class.html",
-
         old_name=old_name
-
     )
 
 
@@ -746,7 +1109,8 @@ def edit_class(old_name):
 from datetime import datetime
 from flask import request, redirect, render_template
 
-
+#ISSUE
+# ISSUE BOOK
 @app.route("/issue", methods=["GET", "POST"])
 def issue_book():
 
@@ -758,7 +1122,18 @@ def issue_book():
         expected_return = request.form.get("return_date")
 
 
+        # ==========================================
+        # CHECK REQUIRED FIELDS
+        # ==========================================
+
+        if not book_id or not class_name or not student_name or not expected_return:
+            return "Please fill out all required fields"
+
+
+        # ==========================================
         # BLOCK PAST DATE
+        # ==========================================
+
         today = date.today()
 
         selected_date = datetime.strptime(
@@ -767,13 +1142,18 @@ def issue_book():
         ).date()
 
         if selected_date < today:
-
             return "You cannot issue a book to a past date"
 
 
+        # ==========================================
         # FIND BOOK
+        # ==========================================
+
         book = next(
-            (b for b in books if str(b["id"]) == str(book_id)),
+            (
+                b for b in books
+                if str(b["id"]) == str(book_id)
+            ),
             None
         )
 
@@ -781,7 +1161,10 @@ def issue_book():
             return redirect("/issue")
 
 
+        # ==========================================
         # CHECK RESERVATION
+        # ==========================================
+
         reserved = next(
             (
                 r for r in reservations
@@ -799,10 +1182,14 @@ def issue_book():
             )
 
 
-        # PREVENT DUPLICATE ISSUE
+        # ==========================================
+        # CHECK LOCAL ACTIVE ISSUE
+        # ==========================================
+
         already_issued = any(
-            i["book_id"] == book_id
+            str(i["book_id"]) == str(book_id)
             and not i.get("returned", False)
+            and i.get("status") not in ["reserved", "expired"]
             for i in issues
         )
 
@@ -810,11 +1197,52 @@ def issue_book():
             return "Book already issued!"
 
 
-        # TODAY DATE
-        issue_date = datetime.now().strftime("%Y-%m-%d")
+        # ==========================================
+        # CHECK SUPABASE ACTIVE ISSUE
+        # ==========================================
+
+        existing_db = (
+            supabase
+            .table("loans")
+            .select("id")
+            .eq("book_id", book_id)
+            .eq("returned", False)
+            .execute()
+        )
+
+        if existing_db.data:
+            return "Book already issued!"
 
 
-        # SAVE ISSUE
+        # ==========================================
+        # TODAY
+        # ==========================================
+
+        issue_date = datetime.now().strftime(
+            "%Y-%m-%d"
+        )
+
+
+        # ==========================================
+        # SAVE TO SUPABASE FIRST
+        # ==========================================
+
+        supabase.table("loans").insert({
+            "book_id": book_id,
+            "book_name": book["name"],
+            "student_name": student_name,
+            "class_name": class_name,
+            "issue_date": issue_date,
+            "expected_return": expected_return,
+            "return_date": None,
+            "returned": False
+        }).execute()
+
+
+        # ==========================================
+        # SAVE TO LOCAL HISTORY
+        # ==========================================
+
         issues.append({
 
             "book_id": book_id,
@@ -828,10 +1256,14 @@ def issue_book():
 
         })
 
+
         return redirect("/issue")
 
 
-    # FOR GET REQUEST → HIDE RESERVED + EXPIRED
+    # ==========================================
+    # GET REQUEST
+    # ==========================================
+
     normal_issues = [
 
         i for i in issues
@@ -854,6 +1286,11 @@ def issue_book():
         today=date.today().strftime("%Y-%m-%d")
 
     )
+
+
+#BRO
+
+
 
 
 @app.route("/get_students/<class_name>")
@@ -944,13 +1381,17 @@ def search_borrowers():
     )
 
 
-
 # EDIT EXPECTED RETURN DATE
 @app.route("/edit_return_date/<book_id>", methods=["GET", "POST"])
 def edit_return_date(book_id):
 
     issue = next(
-        (i for i in issues if i["book_id"] == book_id and not i["returned"]),
+        (
+            i for i in issues
+            if str(i["book_id"]) == str(book_id)
+            and not i.get("returned", False)
+            and i.get("status") not in ("reserved", "expired")
+        ),
         None
     )
 
@@ -959,8 +1400,27 @@ def edit_return_date(book_id):
 
     if request.method == "POST":
 
-        # ONLY CHANGE EXPECTED RETURN DATE
-        issue["expected_return"] = request.form.get("return_date")
+        new_return_date = request.form.get("return_date")
+
+        if not new_return_date:
+            return "Please select an expected return date."
+
+        try:
+            datetime.strptime(new_return_date, "%Y-%m-%d")
+        except ValueError:
+            return "Invalid return date."
+
+        # SAVE THE CHANGE TO SUPABASE FIRST
+        supabase.table("loans").update({
+            "expected_return": new_return_date
+        }).eq(
+            "book_id", book_id
+        ).eq(
+            "returned", False
+        ).execute()
+
+        # UPDATE THE IN-MEMORY RECORD
+        issue["expected_return"] = new_return_date
 
         return redirect("/issue")
 
@@ -974,198 +1434,193 @@ def edit_return_date(book_id):
 @app.route("/reserve", methods=["GET", "POST"])
 def reserve_book():
 
-    # CHECK EXPIRED EVERY TIME PAGE LOADS
-    check_expired_reservations()
-
     if request.method == "POST":
+        book_id = (request.form.get("book_id") or "").strip()
+        class_name = (request.form.get("class_name") or "").strip()
+        student_name = (request.form.get("student_name") or "").strip()
+        reserved_until = (request.form.get("reserved_until") or "").strip()
 
-        book_id = request.form.get("book_id")
-        class_name = request.form.get("class_name")
-        student_name = request.form.get("student_name")
-        reserved_until = request.form.get("reserved_until")
+        if not all([book_id, class_name, student_name, reserved_until]):
+            return "Please fill out all required fields."
 
+        try:
+            chosen_date = datetime.strptime(
+                reserved_until, "%Y-%m-%d"
+            ).date()
+        except ValueError:
+            return "Please select a valid reservation date."
 
-        # BLOCK PAST DATES
-        today_date = date.today()
+        if chosen_date < date.today():
+            return "You cannot choose a date before today."
 
-        chosen_date = datetime.strptime(
-            reserved_until,
-            "%Y-%m-%d"
-        ).date()
+        load_books_from_db()
+        load_students_from_db()
+        check_expired_reservations()
 
-        if chosen_date < today_date:
-
-            return "You cannot choose a date before today"
-
-
-        # FIND BOOK
         book = next(
-            (b for b in books if b["id"] == book_id),
+            (b for b in books if str(b["id"]) == book_id),
             None
         )
 
         if not book:
-            return "Book not found"
+            return "Book not found."
 
-
-        # CHECK IF ALREADY RESERVED
-        existing = next(
-            (
-                r for r in reservations
-                if r["book_id"] == book_id
-                and not r.get("expired", False)
-            ),
-            None
+        valid_student = any(
+            s["name"] == student_name and s["class"] == class_name
+            for s in students
         )
 
-        if existing:
+        if not valid_student:
+            return "Please select a valid student from the selected class."
 
+        active_reservation = (
+            supabase.table("reservations")
+            .select("id, student_name, class_name")
+            .eq("book_id", book_id)
+            .eq("expired", False)
+            .limit(1)
+            .execute()
+        )
+
+        if active_reservation.data:
+            existing = active_reservation.data[0]
             return (
-                f"This book is already reserved by "
-                f"{existing['student']}"
+                "This book is already reserved by "
+                f"{existing.get('student_name', 'another student')} "
+                f"from {existing.get('class_name', 'another class')}."
             )
 
+        active_loan = (
+            supabase.table("loans")
+            .select("id")
+            .eq("book_id", book_id)
+            .eq("returned", False)
+            .limit(1)
+            .execute()
+        )
 
-        # TODAY DATE
-        today = datetime.now().strftime("%Y-%m-%d")
+        if active_loan.data:
+            return "This book is currently issued and cannot be reserved."
 
+        today = date.today().strftime("%Y-%m-%d")
 
-        # SAVE RESERVATION
-        reservation = {
-
+        # SAVE DIRECTLY TO SUPABASE
+        supabase.table("reservations").insert({
             "book_id": book_id,
             "book_name": book["name"],
-            "class": class_name,
-            "student": student_name,
-
+            "student_name": student_name,
+            "class_name": class_name,
             "reserved_on": today,
             "reserved_until": reserved_until,
-
             "expired": False
+        }).execute()
 
-        }
-
-        reservations.append(reservation)
-
-
-        # SAVE IN HISTORY
-        issues.append({
-
-            "book_id": book_id,
-            "book_name": book["name"],
-
-            "class": class_name,
-            "student": student_name,
-
-            "issue_date": "---",
-            "expected_return": "---",
-            "return_date": "---",
-
-            "reserved_on": today,
-            "end_date": reserved_until,
-
-            "returned": False,
-            "status": "reserved"
-
-        })
-
-
+        load_history_from_db()
         return redirect("/reserve")
-    
 
-    active_reservations = [
+    load_books_from_db()
+    load_students_from_db()
+    check_expired_reservations()
 
+    query = (request.args.get("search") or "").strip().lower()
+
+    visible_reservations = [
     r for r in reservations
-
     if not r.get("expired", False)
-
-]
-
-    return render_template(
-    "reserve.html",
-    classes=classes,
-    reservations=active_reservations,
-     today=date.today().strftime("%Y-%m-%d")
-)
-
-
-   
-
-
-@app.route("/search_reservations")
-def search_reservations():
-
-    query = request.args.get("q", "").lower()
-
-    filtered = [
-
-        r for r in reservations
-
-        if query in r["book_id"].lower()
+    and (
+        query in r["book_id"].lower()
         or query in r["student"].lower()
         or query in r["class"].lower()
+    )
+]
 
-    ]
+
 
     return render_template(
         "reserve.html",
         classes=classes,
-        reservations=filtered
+        reservations=visible_reservations,
+        today=date.today().strftime("%Y-%m-%d")
     )
 
-@app.route("/delete_reservation/<book_id>")
-def delete_reservation(book_id):
 
-    global reservations
+@app.route("/search_reservations")
+def search_reservations():
+    query = (
+        request.args.get("q")
+        or request.args.get("search")
+        or ""
+    ).strip().lower()
 
-    reservations = [
-        r for r in reservations
-        if r["book_id"] != book_id
-    ]
+    load_history_from_db()
 
-    return redirect("/reserve")
+    visible_reservations = [
+    r for r in reservations
+    if not r.get("expired", False)
+    and (
+        query in r["book_id"].lower()
+        or query in r["student"].lower()
+        or query in r["class"].lower()
+    )
+]
+    
 
-@app.route(
-    "/edit_reservation/<book_id>",
-    methods=["GET","POST"]
-)
+    return render_template(
+        "reserve.html",
+        classes=classes,
+        reservations=visible_reservations,
+        today=date.today().strftime("%Y-%m-%d")
+    )
+
+
+@app.route("/edit_reservation/<book_id>", methods=["GET", "POST"])
 def edit_reservation(book_id):
+    load_history_from_db()
 
     reservation = next(
         (
-            r for r in reservations
-            if r["book_id"] == book_id
+            r for r in reversed(reservations)
+            if str(r["book_id"]) == str(book_id)
+            and not r.get("expired", False)
         ),
         None
     )
 
-    if not reservation:
+    if not reservation or not reservation.get("id"):
         return redirect("/reserve")
 
     if request.method == "POST":
+        new_date = (
+            request.form.get("reserved_until") or ""
+        ).strip()
 
-        new_date = request.form.get(
-            "reserved_until"
-        )
+        try:
+            parsed_date = datetime.strptime(
+                new_date, "%Y-%m-%d"
+            ).date()
+        except ValueError:
+            return "Please select a valid expiry date."
 
-        reservation["reserved_until"] = new_date
-
-
-        for i in issues:
-
-         if i["book_id"] == book_id:
-
-          i["end_date"] = new_date
 
 
         
+        supabase.table("reservations").update({
+            "reserved_until": new_date,
+            "expired": False
+        }).eq("id", reservation["id"]).execute()
 
+        load_history_from_db()
         return redirect("/reserve")
 
     return render_template(
         "edit_reservation.html",
         reservation=reservation
     )
+
+
+
+
+    
 
 
 
@@ -1194,7 +1649,9 @@ def return_page():
 
         issues=normal_issues,
 
-        classes=classes
+        classes=classes,
+
+        books=books
 
     )
 
@@ -1211,16 +1668,13 @@ def return_book_post():
         return redirect("/return")
 
     for i in issues:
-       for i in issues:
 
-         if (
-        i["book_id"] == book_id
-        and not i["returned"]
-        and i.get("status") != "reserved"
-        and i.get("status") != "expired"
-    ):
-            
-
+        if (
+            i["book_id"] == book_id
+            and not i["returned"]
+            and i.get("status") != "reserved"
+            and i.get("status") != "expired"
+        ):
 
             # MARK AS RETURNED
             i["returned"] = True
@@ -1228,9 +1682,19 @@ def return_book_post():
             # SAVE RETURN DATE
             i["return_date"] = datetime.now().strftime("%Y-%m-%d")
 
+            # UPDATE SUPABASE
+            supabase.table("loans").update({
+                "returned": True,
+                "return_date": i["return_date"]
+            }).eq("book_id", book_id).eq("returned", False).execute()
+
             break
 
     return redirect("/return")
+
+
+
+
 
 
 # RETURN BY CLASS (MULTIPLE STUDents)
@@ -1242,34 +1706,33 @@ def return_class():
 
     if not class_name or not selected_students:
         return redirect("/return")
-    
+
     for i in issues:
 
-        if (
-
+      if (
         i["class"] == class_name
-
         and i["student"] in selected_students
-
         and not i["returned"]
-
         and i.get("status") != "reserved"
-
         and i.get("status") != "expired"
-
     ):
-            
+
+        # MARK RETURNED
+        i["returned"] = True
+
+        # SAVE RETURN DATE
+        i["return_date"] = datetime.now().strftime("%Y-%m-%d")
+
+        # UPDATE SUPABASE
+        supabase.table("loans").update({
+            "returned": True,
+            "return_date": i["return_date"]
+        }).eq("book_id", i["book_id"]).eq("returned", False).execute()
 
 
-
-            # MARK RETURNED
-            i["returned"] = True
-
-            # SAVE RETURN DATE
-            i["return_date"] = datetime.now().strftime("%Y-%m-%d")
-
+    
+    
     return redirect("/return")
-
 
 
 # HISTORY
@@ -1278,226 +1741,241 @@ def history():
 
     global current_history_view
 
-    current_history_view = issues
-
+    # Make sure reservation expiry is checked first
     check_expired_reservations()
 
+    # ==========================================
+    # BUILD HISTORY VIEW
+    # ==========================================
 
-    search_student = request.args.get("student", "").lower()
-    search_class = request.args.get("class", "").lower()
-    search_book = request.args.get("book", "").lower()
-    search_borrow = request.args.get("borrow_date", "")
-    search_return = request.args.get("return_date", "")
-    search_actual = request.args.get("actual_return", "")
-    search_reserve = request.args.get("reserve_date", "")
-    search_expiry = request.args.get("expiry_date", "")
-    search_status = request.args.get("status", "").lower()
-    search_reservation = request.args.get(
-        "reservation_status",
-        ""
+    history_rows = []
+
+    # ------------------------------------------
+    # BORROWED / RETURNED LOANS
+    # ------------------------------------------
+
+    for i in issues:
+
+        # Do not show expired/reserved entries here
+        if i.get("status") in ["reserved", "expired"]:
+            continue
+
+        history_rows.append(i)
+
+
+    # ------------------------------------------
+    # RESERVED / EXPIRED RESERVATIONS
+    # ------------------------------------------
+
+    for i in issues:
+
+        if i.get("status") == "reserved":
+            history_rows.append(i)
+
+        elif i.get("status") == "expired":
+            history_rows.append(i)
+
+
+    # Save exactly what is currently displayed
+    current_history_view = history_rows
+
+
+    # ==========================================
+    # SEARCH VALUES
+    # ==========================================
+
+    search_student = request.args.get(
+        "student", ""
     ).lower()
 
-    filtered = issues
+    search_class = request.args.get(
+        "class", ""
+    ).lower()
 
-    # STUDENT SEARCH
+    search_book = request.args.get(
+        "book", ""
+    ).lower()
+
+    search_borrow = request.args.get(
+        "borrow_date", ""
+    )
+
+    search_return = request.args.get(
+        "return_date", ""
+    )
+
+    search_actual = request.args.get(
+        "actual_return", ""
+    )
+
+    search_reserve = request.args.get(
+        "reserve_date", ""
+    )
+
+    search_expiry = request.args.get(
+        "expiry_date", ""
+    )
+
+    search_status = request.args.get(
+        "status", ""
+    ).lower()
+
+    search_reservation = request.args.get(
+        "reservation_status", ""
+    ).lower()
+
+
+    # ==========================================
+    # FILTER
+    # ==========================================
+
+    filtered = history_rows
+
+
+    # STUDENT
     if search_student:
 
         filtered = [
-
             i for i in filtered
-
-            if search_student in i["student"].lower()
-
+            if search_student in
+            i.get("student", "").lower()
         ]
 
 
-
-
-    # CLASS SEARCH
+    # CLASS
     if search_class:
 
         filtered = [
-
             i for i in filtered
-
-            if search_class in i["class"].lower()
-
+            if search_class in
+            i.get("class", "").lower()
         ]
 
-      
 
-
-    # BOOK SEARCH
+    # BOOK
     if search_book:
 
         filtered = [
-
             i for i in filtered
-
-            if search_book in i["book_id"].lower()
-
+            if search_book in
+            str(i.get("book_id", "")).lower()
         ]
 
 
-
-    # BORROW DATE SEARCH
+    # BORROW DATE
     if search_borrow:
 
         filtered = [
-
             i for i in filtered
-
-            if search_borrow in str(
-                i.get("issue_date", "")
-            )
-
+            if search_borrow in
+            str(i.get("issue_date", ""))
         ]
 
-       
 
-        if search_reserve:
+    # RESERVE DATE
+    if search_reserve:
 
-         filtered = [
-
-        i for i in filtered
-
-        if search_reserve in str(
-
-            i.get("reserved_on", "")
-
-        )
-
-    ]
-         
-
-        
+        filtered = [
+            i for i in filtered
+            if search_reserve in
+            str(i.get("reserved_on", ""))
+        ]
 
 
-    # EXPECTED RETURN SEARCH
+    # EXPECTED RETURN
     if search_return:
 
         filtered = [
-
             i for i in filtered
-
-            if search_return in str(
-                i.get("expected_return", "")
-            )
-
+            if search_return in
+            str(i.get("expected_return", ""))
         ]
 
 
-
-    # ACTUAL RETURN SEARCH
+    # ACTUAL RETURN
     if search_actual:
 
         filtered = [
-
             i for i in filtered
-
-            if search_actual in str(
-                i.get("return_date", "")
-            )
-
+            if search_actual in
+            str(i.get("return_date", ""))
         ]
 
-    
 
-
-    # EXPIRY DATE SEARCH
+    # EXPIRY DATE
     if search_expiry:
 
         filtered = [
-
             i for i in filtered
-
-            if search_expiry in str(
-                i.get("end_date", "")
-            )
-
+            if search_expiry in
+            str(i.get("end_date", ""))
         ]
 
 
+    # ==========================================
+    # BORROWED / RETURNED
+    # ==========================================
 
-    # RETURNED / BORROWED SEARCH
     if search_status:
 
         if search_status == "returned":
 
             filtered = [
-
                 i for i in filtered
-
                 if i.get("returned", False)
-
+                and i.get("status") != "reserved"
+                and i.get("status") != "expired"
             ]
-
-       
-
 
 
         elif search_status == "borrowed":
 
             filtered = [
-
                 i for i in filtered
-
-                if (
-
-                    not i.get("returned", False)
-
-                    and i.get("status") != "reserved"
-
-                    and i.get("status") != "expired"
-
-                )
-
+                if not i.get("returned", False)
+                and i.get("status") != "reserved"
+                and i.get("status") != "expired"
             ]
 
-          
 
+    # ==========================================
+    # RESERVED / EXPIRED
+    # ==========================================
 
-    # RESERVED / EXPIRED SEARCH
     if search_reservation:
 
         if search_reservation == "reserved":
 
             filtered = [
-
                 i for i in filtered
-
                 if i.get("status") == "reserved"
-
             ]
 
-          
 
         elif search_reservation == "expired":
 
             filtered = [
-
                 i for i in filtered
-
                 if i.get("status") == "expired"
-
             ]
 
 
+    # ==========================================
+    # RENDER HISTORY
+    # ==========================================
+
     return render_template(
-
         "history.html",
-
         issues=filtered,
-
         books=books,
-
         classes=classes
-
     )
+
 
     from datetime import datetime, timedelta
 
 #DELETE HISTORY
+# DELETE HISTORY
 @app.route("/delete_history", methods=["POST"])
 def delete_history():
 
@@ -1508,28 +1986,46 @@ def delete_history():
 
     global issues
 
+    # ==========================================
+    # DELETE FROM SUPABASE FIRST
+    # ==========================================
 
-    # DELETE ALL HISTORY
+    delete_history_from_db(option)
+
+
+    # ==========================================
+    # DELETE FROM FLASK MEMORY
+    # ==========================================
+
+    from datetime import datetime, timedelta
+
+
+    # ------------------------------------------
+    # DELETE ALL COMPLETED HISTORY
+    # ------------------------------------------
+
     if option == "all":
 
         issues = [
-
             i for i in issues
 
+            # KEEP ACTIVE BORROWED
             if (
-
                 not i.get("returned", False)
-
-                and i.get("status") != "expired"
-
                 and i.get("status") != "reserved"
-
+                and i.get("status") != "expired"
             )
 
+            # KEEP ACTIVE RESERVED
+            or i.get("status") == "reserved"
         ]
 
         return redirect("/history")
 
+
+    # ------------------------------------------
+    # TIME-BASED DELETE
+    # ------------------------------------------
 
     days_map = {
         "5": 5,
@@ -1551,30 +2047,34 @@ def delete_history():
 
     for i in issues:
 
+        # ======================================
+        # ACTIVE BORROWED → KEEP
+        # ======================================
 
-        # KEEP ACTIVE BORROWED BOOKS
         if (
-
             not i.get("returned", False)
-
-            and i.get("status") != "expired"
-
             and i.get("status") != "reserved"
-
+            and i.get("status") != "expired"
         ):
 
             new_issues.append(i)
             continue
 
 
-        # KEEP ACTIVE RESERVED BOOKS
+        # ======================================
+        # ACTIVE RESERVED → KEEP
+        # ======================================
+
         if i.get("status") == "reserved":
 
             new_issues.append(i)
             continue
 
 
-        # CHECK RETURNED BOOKS
+        # ======================================
+        # RETURNED
+        # ======================================
+
         if i.get("returned", False):
 
             try:
@@ -1588,10 +2088,14 @@ def delete_history():
                     new_issues.append(i)
 
             except:
+
                 new_issues.append(i)
 
 
-        # CHECK EXPIRED BOOKS
+        # ======================================
+        # EXPIRED RESERVATION
+        # ======================================
+
         elif i.get("status") == "expired":
 
             try:
@@ -1605,6 +2109,7 @@ def delete_history():
                     new_issues.append(i)
 
             except:
+
                 new_issues.append(i)
 
 
@@ -1613,107 +2118,99 @@ def delete_history():
     return redirect("/history")
 
 
+
 @app.route("/history_range_class")
 def history_range_class():
-
     global current_history_view
 
-    current_history_view = filtered
-
-
-    from_class = request.args.get("from_class")
-    to_class = request.args.get("to_class")
+    from_class = request.args.get("from_class", "").strip()
+    to_class = request.args.get("to_class", "").strip()
 
     if not from_class or not to_class:
         return redirect("/history")
 
+    sorted_classes = sorted(set(str(c) for c in classes))
 
-    # SORT CLASSES
-    sorted_classes = sorted(classes)
-
+    if from_class not in sorted_classes or to_class not in sorted_classes:
+        return redirect("/history")
 
     start = sorted_classes.index(from_class)
     end = sorted_classes.index(to_class)
 
+    # Allow the user to select either direction
+    if start > end:
+        start, end = end, start
 
-    allowed_classes = sorted_classes[start:end+1]
-
+    allowed_classes = sorted_classes[start:end + 1]
 
     filtered = [
-
         i for i in issues
-
-        if i["class"] in allowed_classes
-
+        if str(i.get("class", "")) in allowed_classes
     ]
-
-
-
-    return render_template(
-
-        "history.html",
-
-        issues=filtered,
-
-        books=books,
-
-        classes=classes
-
-    )
-
-@app.route("/history_range_date")
-def history_range_date():
-
-    global current_history_view
 
     current_history_view = filtered
 
-    from_date = request.args.get("from_date")
-    to_date = request.args.get("to_date")
+    return render_template(
+        "history.html",
+        issues=filtered,
+        books=books,
+        classes=classes
+    )
+
+
+@app.route("/history_range_date")
+def history_range_date():
+    global current_history_view
+
+    from_date = request.args.get("from_date", "").strip()
+    to_date = request.args.get("to_date", "").strip()
 
     if not from_date or not to_date:
         return redirect("/history")
 
+    # Validate both dates
+    try:
+        start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+    except ValueError:
+        return redirect("/history")
+
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
 
     filtered = []
 
-
     for i in issues:
-
-
-        # choose date depending on type
-
-        if i.get("status") == "reserved":
-
+        # Reservations use their reservation date.
+        # Borrowed/returned books use their issue date.
+        if i.get("status") in ("reserved", "expired"):
             date_to_check = i.get("reserved_on")
-
         else:
-
             date_to_check = i.get("issue_date")
 
+        if not date_to_check or date_to_check == "---":
+            continue
 
-        if date_to_check and date_to_check != "---":
+        try:
+            record_date = datetime.strptime(
+                str(date_to_check)[:10], "%Y-%m-%d"
+            ).date()
+        except (ValueError, TypeError):
+            continue
 
-            if from_date <= date_to_check <= to_date:
+        if start_date <= record_date <= end_date:
+            filtered.append(i)
 
-                filtered.append(i)
-
-            
-
+    current_history_view = filtered
 
     return render_template(
-
         "history.html",
-
         issues=filtered,
-
         books=books,
-
         classes=classes
-
     )
 
-
+   
 @app.route("/export_history")
 def export_history():
 
@@ -1872,20 +2369,20 @@ def export_history():
 @app.route("/excel_import")
 def excel_import():
 
+    # Refresh everything from Supabase before displaying the page
+    load_books_from_db()
+    load_students_from_db()
+
     return render_template(
         "excel_import.html",
-
         books_from_excel=books_from_excel,
         students_from_excel=students_from_excel,
-
         books_excel_name=books_excel_name,
         students_excel_name=students_excel_name,
-
         books=books,
         students=students,
         classes=classes
     )
-
 
 
 
@@ -2067,17 +2564,34 @@ def upload_books_excel():
         # REPLACE OLD BOOK DATA
         # =========================
 
-        books.clear()
+                # SAVE THE IMPORT TO SUPABASE
+        db_books = [
+            {
+                **book,
+                "source": "excel"
+            }
+            for book in imported_books
+        ]
 
-        books.extend(imported_books)
+        supabase.table("books").delete().neq(
+            "id", "__LIBMEM_NO_MATCHING_BOOK_ID__"
+        ).execute()
 
+        supabase.table("books").insert(db_books).execute()
+
+        books = imported_books
         book_counter = 1
-
         books_from_excel = True
-
-        books_excel_name = file.filename
+        books_excel_name = secure_filename(file.filename) or file.filename
 
         return redirect("/excel_import")
+
+    
+
+
+
+
+
 
     except Exception:
 
@@ -2244,19 +2758,56 @@ def upload_students_excel():
         # REPLACE OLD DATA
         # =========================
 
-        students.clear()
+                # REPLACE OLD DATA IN SUPABASE
 
-        classes.clear()
+        db_students = [
+            {
+                "name": student["name"],
+                "class_name": student["class"],
+                "source": "excel"
+            }
+            for student in imported_students
+        ]
 
-        students.extend(imported_students)
+        # Delete old students first
+        supabase.table("students").delete().neq(
+            "name", "__LIBMEM_NO_MATCHING_STUDENT__"
+        ).execute()
 
-        classes.extend(imported_classes)
+        # Delete old classes
+        supabase.table("classes").delete().neq(
+            "name", "__LIBMEM_NO_MATCHING_CLASS__"
+        ).execute()
+
+        # Insert imported classes
+        supabase.table("classes").insert([
+            {
+                "name": class_name,
+                "source": "excel"
+            }
+            for class_name in imported_classes
+        ]).execute()
+
+        # Insert imported students
+        if db_students:
+            supabase.table("students").insert(
+                db_students
+            ).execute()
+
+        # Update in-memory data
+        students = imported_students
+        classes = imported_classes
 
         students_from_excel = True
-
         students_excel_name = file.filename
 
         return redirect("/excel_import")
+
+
+
+
+
+
 
     except Exception:
 
@@ -2316,6 +2867,12 @@ def delete_books_excel():
     global books_excel_name
     global book_counter
 
+    supabase.table("books").delete().neq(
+    "id", "__LIBMEM_NO_MATCHING_BOOK_ID__"
+).execute()
+
+    
+
     books = []
 
     book_counter = 1
@@ -2339,6 +2896,16 @@ def delete_students_excel():
 
     global students_from_excel
     global students_excel_name
+
+    supabase.table("students").delete().neq(
+    "name", "__LIBMEM_NO_MATCHING_STUDENT__"
+).execute()
+
+    supabase.table("classes").delete().neq(
+    "name", "__LIBMEM_NO_MATCHING_CLASS__"
+).execute()
+
+
 
     students = []
 
@@ -2398,21 +2965,40 @@ except Exception as e:
 
 def load_students_from_db():
     global students, classes
+    global students_from_excel, students_excel_name
 
     student_result = supabase.table("students").select("*").execute()
     class_result = supabase.table("classes").select("*").execute()
 
+    student_rows = student_result.data or []
+    class_rows = class_result.data or []
+
     students.clear()
     classes.clear()
 
-    for row in student_result.data:
+    # Restore Excel mode from Supabase
+    all_rows = student_rows + class_rows
+
+    students_from_excel = (
+        bool(all_rows)
+        and all(row.get("source") == "excel" for row in all_rows)
+    )
+
+    students_excel_name = (
+        "Excel data saved in Supabase"
+        if students_from_excel else None
+    )
+
+    for row in student_rows:
         students.append({
             "name": row["name"],
             "class": row["class_name"]
         })
 
-    for row in class_result.data:
+    for row in class_rows:
         classes.append(row["name"])
+
+
 
 
 def save_class_to_db(class_name):
@@ -2470,6 +3056,12 @@ try:
     load_students_from_db()
 except Exception as e:
     print("Could not load students from Supabase:", e)
+
+try:
+    load_history_from_db()
+except Exception as e:
+    print("Could not load history from Supabase:", e)
+
 
 
 

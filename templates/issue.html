@@ -128,28 +128,68 @@
     </style>
 
     <script>
-        function loadStudents() {
-            let className = document.getElementById("class").value;
 
-            fetch(`/get_students/${className}`)
-            .then(res => res.json())
-            .then(data => {
-                let list = document.getElementById("students");
-                list.innerHTML = "";
+       
+function loadStudents(keepSelection = false) {
+    const className = document.getElementById("class").value;
+    const list = document.getElementById("students");
+    const search = document.getElementById("student_search");
+    const studentInput = document.getElementById("student_name");
 
-                data.students.forEach(s => {
-                    let div = document.createElement("div");
-                    div.className = "student";
-                    div.innerText = s.name;
+    // Clear old students while loading the selected class
+    list.innerHTML = "";
+    if (!keepSelection) {
+        search.value = "";
+        studentInput.value = "";
+    }
 
-                    div.onclick = () => {
-                        document.getElementById("student_name").value = s.name;
-                    };
+    if (!className) return;
 
-                    list.appendChild(div);
-                });
+    fetch(`/get_students/${encodeURIComponent(className)}`)
+        .then(response => {
+            if (!response.ok) throw new Error("Could not load students");
+            return response.json();
+        })
+        .then(data => {
+            list.innerHTML = "";
+
+            data.students.forEach(s => {
+                const div = document.createElement("div");
+                div.className = "student";
+                div.textContent = s.name;
+                div.dataset.name = s.name.toLowerCase();
+
+                div.onclick = () => {
+                    studentInput.value = s.name;
+
+                    document.querySelectorAll("#students .student")
+                        .forEach(item => {
+                            item.style.background = "";
+                        });
+
+                    div.style.background = "#d9f2df";
+                };
+
+                list.appendChild(div);
             });
-        }
+
+            filterStudents();
+        })
+        .catch(error => {
+            console.error("Student loading error:", error);
+            list.innerHTML = "Could not load students. Please select the class again.";
+        });
+}
+
+function filterStudents() {
+    const query = document.getElementById("student_search")
+        .value.trim().toLowerCase();
+
+    document.querySelectorAll("#students .student").forEach(student => {
+        student.style.display =
+            student.dataset.name.includes(query) ? "" : "none";
+    });
+}
 
         function showBook() {
             let bookId = document.getElementById("book_id").value;
@@ -175,7 +215,91 @@
         }
     </script>
 
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const classSelect = document.getElementById("class");
+
+    // Restore the class after the issue page reloads
+    const savedClass = sessionStorage.getItem("issueSelectedClass");
+
+    if (
+        savedClass &&
+        Array.from(classSelect.options).some(
+            option => option.value === savedClass
+        )
+    ) {
+        classSelect.value = savedClass;
+    }
+
+    if (classSelect.value) {
+        loadStudents(true);
+    }
+
+    // Remember the class when submitting the Issue Book form
+    const issueForm = document.querySelector(
+        'form[method="POST"]'
+    );
+
+    if (issueForm) {
+        issueForm.addEventListener("submit", function () {
+            sessionStorage.setItem(
+                "issueSelectedClass",
+                classSelect.value
+            );
+        });
+    }
+
+    // Remember any newly selected class
+    classSelect.addEventListener("change", function () {
+        sessionStorage.setItem(
+            "issueSelectedClass",
+            classSelect.value
+        );
+    });
+});
+</script>
+
+
+
 </head>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = Array.from(document.forms).find(
+        f => f.querySelector('[name="return_date"]')
+            && f.querySelector('[name="book_id"]')
+    );
+
+    if (!form) return;
+
+    let submitting = false;
+
+    form.addEventListener("submit", function (event) {
+        if (submitting) {
+            event.preventDefault();
+            return;
+        }
+
+        event.preventDefault();
+        submitting = true;
+
+        const button = form.querySelector(
+            'button[type="submit"], input[type="submit"]'
+        );
+
+        if (button) {
+            button.disabled = true;
+        }
+
+        setTimeout(function () {
+            form.submit();
+        }, 200);
+    });
+});
+</script>
+
+
+
 
 <body>
 
@@ -243,8 +367,19 @@
 
                     <br>
 
-                    <input type="text" name="student_name" id="student_name"
-                           placeholder="Student Name" required>
+                    
+<input
+    type="text"
+    name="student_name"
+    id="student_name"
+    placeholder="Select a student from the list"
+    readonly
+    required
+>
+
+
+
+                    
                            <input
     type="date"
     name="return_date"
@@ -253,8 +388,17 @@
 >
 
 
+<input
+    type="search"
+    id="student_search"
+    placeholder="Search for students🔎"
+    oninput="filterStudents()"
+    autocomplete="off"
+>
 
-                    <div class="student-list" id="students"></div>
+<div class="student-list" id="students"></div>
+
+
 
                     <button type="submit">Issue Book</button>
 

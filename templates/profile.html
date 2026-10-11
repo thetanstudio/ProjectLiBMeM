@@ -40,6 +40,233 @@
     </style>
 </head>
 
+
+<!-- FORCE DELETE LIBMEM DANGER ZONE -->
+<style>
+    .libmem-danger-zone {
+        max-width: 680px;
+        margin: 40px auto;
+        padding: 26px;
+        border: 1px solid #fecaca;
+        border-radius: 20px;
+        background: linear-gradient(145deg, #fffafa, #fff1f2);
+        box-shadow: 0 10px 30px rgba(127, 29, 29, 0.07);
+        font-family: Arial, sans-serif;
+        color: #1f2937;
+    }
+
+    .libmem-danger-heading {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .libmem-danger-icon {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        background: #fee2e2;
+        color: #b91c1c;
+        border-radius: 14px;
+        font-size: 25px;
+    }
+
+    .libmem-danger-zone h2 {
+        margin: 0 0 6px;
+        font-size: 21px;
+        color: #991b1b;
+    }
+
+    .libmem-danger-zone p {
+        line-height: 1.6;
+        font-size: 14px;
+    }
+
+    .libmem-warning {
+        background: #fff;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 14px;
+        margin: 18px 0;
+    }
+
+    .libmem-danger-zone label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 16px 0 8px;
+    }
+
+    .libmem-danger-zone input[type="text"] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 13px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        background: white;
+        font-size: 15px;
+        outline: none;
+    }
+
+    .libmem-danger-zone input[type="text"]:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px #fee2e2;
+    }
+
+    .libmem-check {
+        display: flex !important;
+        align-items: flex-start;
+        gap: 10px;
+        line-height: 1.5;
+        font-weight: 400 !important;
+    }
+
+    .libmem-check input {
+        margin-top: 3px;
+    }
+
+    .libmem-delete-button {
+        width: 100%;
+        margin-top: 12px;
+        padding: 14px;
+        border: 0;
+        border-radius: 11px;
+        background: #b91c1c;
+        color: white;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .libmem-delete-button:disabled {
+        background: #fca5a5;
+        cursor: not-allowed;
+        opacity: 0.75;
+    }
+
+    .libmem-delete-button:not(:disabled):hover {
+        background: #991b1b;
+    }
+
+    .libmem-danger-footnote {
+        color: #7f1d1d;
+        font-size: 12px !important;
+        text-align: center;
+        margin-bottom: 0;
+    }
+</style>
+
+<section class="libmem-danger-zone">
+    <div class="libmem-danger-heading">
+        <div class="libmem-danger-icon">⚠️</div>
+        <div>
+            <h2>Force Delete LiBMeM</h2>
+            <p style="margin: 0; color: #7f1d1d;">
+                Permanent library data reset
+            </p>
+        </div>
+    </div>
+
+    <p>
+        Need a completely fresh start? This action removes all
+        books, students, classes, loans, reservations and their
+        History records from the database.
+    </p>
+
+    <div class="libmem-warning">
+        <strong>⚠️ This action cannot be undone.</strong>
+        <p style="margin-bottom: 0;">
+            Export or back up your database before continuing.
+            Active loans and reservations will be deleted too.
+        </p>
+    </div>
+
+    <form
+        id="libmemForceDeleteForm"
+        action="/force_delete_libmem"
+        method="POST"
+    >
+        <label for="libmemDeleteConfirmation">
+            Type DELETE to unlock the reset button
+        </label>
+
+        <input
+            type="text"
+            id="libmemDeleteConfirmation"
+            name="confirm_text"
+            placeholder="Type DELETE here"
+            autocomplete="off"
+            spellcheck="false"
+            required
+        >
+
+        <label class="libmem-check">
+            <input
+                type="checkbox"
+                name="confirm_checkbox"
+                value="yes"
+                id="libmemDeleteCheckbox"
+                required
+            >
+            <span>
+                I understand that all listed library records will
+                be permanently deleted.
+            </span>
+        </label>
+
+        <button
+            type="submit"
+            id="libmemDeleteButton"
+            class="libmem-delete-button"
+            disabled
+        >
+            🔒 Force Delete Everything
+        </button>
+    </form>
+
+    <p class="libmem-danger-footnote">
+        Restricted action · Requires both confirmations
+    </p>
+</section>
+
+<script>
+(function () {
+    const form = document.getElementById("libmemForceDeleteForm");
+    const input = document.getElementById("libmemDeleteConfirmation");
+    const checkbox = document.getElementById("libmemDeleteCheckbox");
+    const button = document.getElementById("libmemDeleteButton");
+
+    function updateDeleteButton() {
+        button.disabled = !(
+            input.value === "DELETE" &&
+            checkbox.checked
+        );
+    }
+
+    input.addEventListener("input", updateDeleteButton);
+    checkbox.addEventListener("change", updateDeleteButton);
+
+    form.addEventListener("submit", function (event) {
+        if (input.value !== "DELETE" || !checkbox.checked) {
+            event.preventDefault();
+            return;
+        }
+
+        if (!confirm(
+            "FINAL WARNING: Delete all LiBMeM library records permanently?"
+        )) {
+            event.preventDefault();
+        }
+    });
+})();
+</script>
+
+
+
 <body>
 
 <div class="box">

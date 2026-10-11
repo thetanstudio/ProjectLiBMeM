@@ -36,6 +36,35 @@
     </style>
 </head>
 
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Today's date in the user's local timezone
+    const now = new Date();
+    const today = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+    ].join("-");
+
+    // Issue and edit expected return dates
+    document.querySelectorAll(
+        'input[type="date"][name="return_date"]'
+    ).forEach(function (input) {
+        input.min = today;
+    });
+
+    // Reserve and edit reservation expiry dates
+    document.querySelectorAll(
+        'input[type="date"][name="reserved_until"]'
+    ).forEach(function (input) {
+        input.min = today;
+    });
+});
+</script>
+
+
+
 <body>
 
 <div class="container">

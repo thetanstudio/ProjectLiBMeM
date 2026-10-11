@@ -91,17 +91,29 @@ Go to <b>From Excel</b> page to manage imported books.
     <!-- MAIN -->
     <div style="flex:1; padding:30px; background:#f5f5f5;">
 
-        <!-- TOP -->
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Add Books</h2>
+        
+<!-- TOP -->
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Add Books</h2>
 
-            <!-- SEARCH -->
-            <form action="/search">
-                <input name="q" placeholder="Search by ID (S0001)">
-                <button>Search</button>
-            </form>
-        </div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+        <!-- SEARCH BY ID -->
+        <form action="/search" style="display:flex; gap:5px;">
+            <input name="q" placeholder="Search by ID (S0001)" required>
+            <button type="submit">Search ID</button>
+        </form>
 
+        <!-- SEARCH BY BOOK NAME -->
+        <form action="/search_name" style="display:flex; gap:5px;">
+            <input name="q" placeholder="Search by book name" required>
+            <button type="submit">Search Name</button>
+        </form>
+    </div>
+</div>
+
+
+
+       
         <!-- GRID -->
         <div style="display:flex; gap:30px; margin-top:20px;">
 
