@@ -3,6 +3,11 @@
 <head>
     <title>Issue Book</title>
 
+    <link rel="icon" type="image/svg+xml"
+      href="{{ url_for('static', filename='favicon.svg') }}">
+
+      
+
     <style>
         body {
             margin: 0;
@@ -377,15 +382,16 @@ document.addEventListener("DOMContentLoaded", function () {
     required
 >
 
-
-
-                    
-                           <input
+<input
     type="date"
     name="return_date"
+    id="return_date"
     min="{{ today }}"
+    value="{{ seven_days_from_today }}"
     required
 >
+
+
 
 
 <input
@@ -472,21 +478,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     {{ i.book_id }}
                 </td>
 
-                <td>
+<td>
+    {{ i.expected_return }}
 
-                    {% if has_borrowed(i.student) %}
+    {% if has_borrowed(i.student) %}
+        <a
+            href="/edit_return_date/{{ i.book_id }}"
+            class="return-calendar"
+            title="Change return date"
+        >📅</a>
+    {% endif %}
+    
+</td>
 
-                        <a
-                            href="/edit_return_date/{{ i.book_id }}"
-                            class="return-calendar"
-                            title="Change return date"
-                        >
-                            📅
-                        </a>
-
-                    {% endif %}
-
-                </td>
 
             </tr>
 

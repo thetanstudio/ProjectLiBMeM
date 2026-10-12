@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 
 from datetime import datetime, timedelta , date
+
 os.makedirs("static/uploads", exist_ok=True)
 from werkzeug.utils import secure_filename
 
@@ -1273,19 +1274,20 @@ def issue_book():
 
     ]
 
-
     return render_template(
+    "issue.html",
+    books=books,
+    students=students,
+    classes=classes,
+    issues=normal_issues,
+    has_borrowed=has_borrowed,
+    today=date.today().strftime("%Y-%m-%d"),
+    seven_days_from_today=(
+        date.today() + timedelta(days=7)
+    ).strftime("%Y-%m-%d")
+)
 
-        "issue.html",
 
-        books=books,
-        students=students,
-        classes=classes,
-        issues=normal_issues,
-        has_borrowed=has_borrowed,
-        today=date.today().strftime("%Y-%m-%d")
-
-    )
 
 
 #BRO

@@ -3,6 +3,11 @@
 <head>
     <title>Profile</title>
 
+    <link rel="icon" type="image/svg+xml"
+      href="{{ url_for('static', filename='favicon.svg') }}">
+
+      
+
     <style>
         body {
             margin: 0;
@@ -39,6 +44,43 @@
         }
     </style>
 </head>
+
+
+
+
+<body>
+
+<div class="box">
+
+    <a href="/dashboard">⬅ Back</a>
+
+    <h2>Edit Profile</h2>
+
+    <form method="POST">
+
+        <input
+            type="text"
+            name="username"
+            value="{{ user }}"
+            required
+        >
+
+        <button type="submit">
+            Save Changes
+        </button>
+        <br><br>
+
+<a href="/logout">
+
+    <button type="button">
+        Logout
+    </button>
+
+</a>
+
+    </form>
+
+</div>
 
 
 <!-- FORCE DELETE LIBMEM DANGER ZONE -->
@@ -266,40 +308,6 @@
 </script>
 
 
-
-<body>
-
-<div class="box">
-
-    <a href="/dashboard">⬅ Back</a>
-
-    <h2>Edit Profile</h2>
-
-    <form method="POST">
-
-        <input
-            type="text"
-            name="username"
-            value="{{ user }}"
-            required
-        >
-
-        <button type="submit">
-            Save Changes
-        </button>
-        <br><br>
-
-<a href="/logout">
-
-    <button type="button">
-        Logout
-    </button>
-
-</a>
-
-    </form>
-
-</div>
 
 </body>
 </html>
