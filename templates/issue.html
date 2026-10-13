@@ -386,6 +386,7 @@ document.addEventListener("DOMContentLoaded", function () {
     type="date"
     name="return_date"
     id="return_date"
+    lang="en-GB"
     min="{{ today }}"
     value="{{ seven_days_from_today }}"
     required
@@ -479,17 +480,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 </td>
 
 <td>
-    {{ i.expected_return }}
+    {{ i.expected_return | ddmmyyyy }}
 
-    {% if has_borrowed(i.student) %}
-        <a
-            href="/edit_return_date/{{ i.book_id }}"
-            class="return-calendar"
-            title="Change return date"
-        >📅</a>
-    {% endif %}
-    
+    <a
+        href="/edit_return_date/{{ i.book_id }}"
+        class="return-calendar"
+        title="Change return date"
+    >📅</a>
 </td>
+
+
 
 
             </tr>
@@ -510,6 +510,8 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='date-format.js') }}"></script>
 
 </body>
 </html>

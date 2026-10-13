@@ -6,6 +6,8 @@
     <link rel="icon" type="image/svg+xml"
       href="{{ url_for('static', filename='favicon.svg') }}">
 
+     
+
       
 
     <style>
@@ -83,6 +85,9 @@
             border-radius:5px;
         }
     </style>
+
+  
+
 
     <script>
 
@@ -345,13 +350,13 @@ width:350px;
 
                 <br>
 
-               <input
+                <input
     type="date"
     name="reserved_until"
+    lang="en-GB"
     min="{{ today }}"
     required
 >
-
 
                 <br>
 
@@ -400,13 +405,13 @@ width:350px;
 
                 <br><br>
 
-                Reserved On:
-                {{ r.reserved_on }}
+               Reserved On:
+{{ r.reserved_on | ddmmyyyy }}
 
-                <br>
+<br>
 
-                Ends:
-                {{ r.reserved_until }}
+Ends:
+{{ r.reserved_until | ddmmyyyy }}
 
                 <br><br>
 
@@ -446,6 +451,9 @@ width:350px;
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='date-format.js') }}"></script>
+
 
 </body>
 </html>

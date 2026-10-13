@@ -81,11 +81,13 @@ document.addEventListener("DOMContentLoaded", function () {
     <form method="POST">
 
         <input
-            type="date"
-            name="return_date"
-            value="{{ issue.expected_return }}"
-            required
-        >
+    type="date"
+    name="return_date"
+    lang="en-GB"
+    value="{{ issue.expected_return }}"
+    required
+>
+
 
         <button type="submit">
             Save Changes
@@ -94,6 +96,8 @@ document.addEventListener("DOMContentLoaded", function () {
     </form>
 
 </div>
+
+<script src="{{ url_for('static', filename='date-format.js') }}"></script>
 
 </body>
 </html>

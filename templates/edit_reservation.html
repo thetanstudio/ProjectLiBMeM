@@ -44,11 +44,13 @@ document.addEventListener("DOMContentLoaded", function () {
 <form method="POST">
 
 <input
-type="date"
-name="reserved_until"
-value="{{ reservation.reserved_until }}"
-required
+    type="date"
+    name="reserved_until"
+    lang="en-GB"
+    value="{{ reservation.reserved_until }}"
+    required
 >
+
 
 <br><br>
 
@@ -57,6 +59,8 @@ Save
 </button>
 
 </form>
+
+<script src="{{ url_for('static', filename='date-format.js') }}"></script>
 
 </body>
 </html>

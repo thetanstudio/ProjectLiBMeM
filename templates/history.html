@@ -94,6 +94,9 @@
 
 
     </style>
+
+
+
 </head>
 
 <body>
@@ -184,15 +187,18 @@ align-items:center;
     <!-- DATE RANGE -->
     <form method="GET" action="/history_range_date">
 
-        <input
-            type="date"
-            name="from_date"
-        >
+<input
+    type="date"
+    name="from_date"
+    lang="en-GB"
+>
 
-        <input
-            type="date"
-            name="to_date"
-        >
+<input
+    type="date"
+    name="to_date"
+    lang="en-GB"
+>
+
 
         <button>
             Search
@@ -253,23 +259,47 @@ align-items:center;
 
 <input type="text" name="book" placeholder="Book No.">
 
-<input type="text" name="borrow_date" placeholder="Borrow Date">
+<input
+    type="text"
+    name="borrow_date"
+    placeholder="Borrow Date"
+>
 
-<input type="text" name="return_date" placeholder="Expected Return">
+<input
+    type="text"
+    name="return_date"
+    placeholder="Expected Return"
+>
 
-<input type="text" name="actual_return" placeholder="Actual Return">
+<input
+    type="text"
+    name="actual_return"
+    placeholder="Actual Return"
+>
 
-<input type="text" name="expiry_date" placeholder="Expiry Date">
-
-<input type="text" name="status" placeholder="Returned/Borrowed">
-
-<input type="text" name="reservation_status" placeholder="Reserved/Expired">
+<input
+    type="text"
+    name="expiry_date"
+    placeholder="Expiry Date"
+>
 
 <input
     type="text"
     name="reserve_date"
     placeholder="Reserve Date"
 >
+
+
+<input
+    type="text"
+    name="status"
+    placeholder="Borrowed/Returned"
+    value="{{ request.args.get('status', '') }}"
+>
+
+
+
+<input type="text" name="reservation_status" placeholder="Reserved/Expired">
 
 
 <button type="submit">Search</button>
@@ -326,34 +356,41 @@ align-items:center;
 <td>---</td>
 
 <td>
-{{ i.reserved_on }}
+    {{ i.reserved_on | ddmmyyyy }}
 </td>
+
 
 <td>---</td>
 
 <td>---</td>
 
 <td>
-{{ i.end_date }}
+    {{ i.end_date | ddmmyyyy }}
 </td>
+
 
 {% else %}
 
 <td>
-{{ i.issue_date }}
+    {{ i.issue_date | ddmmyyyy }}
 </td>
 
 <td>---</td>
 
 <td>
-{{ i.expected_return }}
+    {{ i.expected_return | ddmmyyyy }}
 </td>
 
 <td>
-{{ i.return_date if i.return_date else "Not Returned" }}
+    {{
+        i.return_date | ddmmyyyy
+        if i.return_date
+        else "Not Returned"
+    }}
 </td>
 
 <td>---</td>
+
 
 {% endif %}
 
@@ -411,6 +448,8 @@ BORROWED
 </table>
 
 </div>
+
+<script src="{{ url_for('static', filename='date-format.js') }}"></script>
 
 </body>
 </html>

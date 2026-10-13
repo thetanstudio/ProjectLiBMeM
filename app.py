@@ -21,6 +21,47 @@ from werkzeug.utils import secure_filename
 def has_borrowed(student_name):
     return any(i for i in issues if i["student"] == student_name and not i["returned"])
 app = Flask(__name__)
+
+
+@app.template_filter("ddmmyyyy")
+def format_date_ddmmyyyy(value):
+    if value is None or value == "":
+        return "—"
+
+    value = str(value).strip()
+
+    if value in ("---", "—", "-"):
+        return value
+
+    try:
+        parsed_date = datetime.strptime(
+            value[:10],
+            "%Y-%m-%d"
+        )
+        return parsed_date.strftime("%d/%m/%Y")
+
+    except (ValueError, TypeError):
+        return value
+
+def normalize_date_search(value):
+    value = (value or "").strip()
+
+    if not value:
+        return ""
+
+    try:
+        return datetime.strptime(
+            value,
+            "%d/%m/%Y"
+        ).strftime("%Y-%m-%d")
+
+    except ValueError:
+        # Keep partial searches and other text unchanged
+        return value
+
+    
+
+    
 app.secret_key = "libmem_secret"
 
 load_dotenv()
@@ -525,10 +566,8 @@ def force_delete_libmem():
         # This helps avoid foreign-key conflicts.
         tables_to_clear = [
             "loans",
-            "reservations",
-            "students",
-            "classes",
-            "books"
+            "reservations"
+            
         ]
 
         for table_name in tables_to_clear:
@@ -540,9 +579,6 @@ def force_delete_libmem():
             )
 
         # CLEAR THE IN-MEMORY DATA TOO
-        books.clear()
-        students.clear()
-        classes.clear()
         issues.clear()
 
 # Do NOT use history.clear().
@@ -552,8 +588,6 @@ def force_delete_libmem():
         current_history_view.clear()
 
 
-
-        book_counter = 1
         timetable_image = None
 
         return """
@@ -1798,25 +1832,29 @@ def history():
         "book", ""
     ).lower()
 
-    search_borrow = request.args.get(
-        "borrow_date", ""
-    )
+    search_borrow = normalize_date_search(
+    request.args.get("borrow_date", "")
+)
 
-    search_return = request.args.get(
-        "return_date", ""
-    )
+    search_return = normalize_date_search(
+    request.args.get("return_date", "")
+)
 
-    search_actual = request.args.get(
-        "actual_return", ""
-    )
+    search_actual = normalize_date_search(
+    request.args.get("actual_return", "")
+)
 
-    search_reserve = request.args.get(
-        "reserve_date", ""
-    )
+    search_reserve = normalize_date_search(
+    request.args.get("reserve_date", "")
+)
 
-    search_expiry = request.args.get(
-        "expiry_date", ""
-    )
+    search_expiry = normalize_date_search(
+    request.args.get("expiry_date", "")
+)
+
+
+
+
 
     search_status = request.args.get(
         "status", ""
@@ -1914,30 +1952,23 @@ def history():
         ]
 
 
-    # ==========================================
-    # BORROWED / RETURNED
-    # ==========================================
+
+
+# ==========================================
+# BORROWED / RETURNED SEARCH
+# ==========================================
 
     if search_status:
-
-        if search_status == "returned":
-
-            filtered = [
-                i for i in filtered
-                if i.get("returned", False)
-                and i.get("status") != "reserved"
-                and i.get("status") != "expired"
-            ]
-
-
-        elif search_status == "borrowed":
-
-            filtered = [
-                i for i in filtered
-                if not i.get("returned", False)
-                and i.get("status") != "reserved"
-                and i.get("status") != "expired"
-            ]
+        filtered = [
+        i for i in filtered
+        if i.get("status") not in ("reserved", "expired")
+        and (
+            search_status in (
+                "returned" if i.get("returned", False)
+                else "borrowed"
+            )
+        )
+    ]
 
 
     # ==========================================
@@ -1976,7 +2007,7 @@ def history():
 
     from datetime import datetime, timedelta
 
-#DELETE HISTORY
+
 # DELETE HISTORY
 @app.route("/delete_history", methods=["POST"])
 def delete_history():
